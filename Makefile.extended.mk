@@ -1,0 +1,118 @@
+CURRENT_DIRECTORY := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+INFRA_DIRECTORY   := $(realpath $(CURRENT_DIRECTORY)/../infra)
+SERVICE_NAME      := $(notdir $(CURRENT_DIRECTORY))
+CONFIG_SWARM      := docker-compose.swarm.yml
+CLUSTER           := swarm
+DOTENV            := .env
+SERVICES          := server
+REGISTRY_HOST     := $(shell cat $(INFRA_DIRECTORY)/$(DOTENV) | grep "REGISTRY_HOST" | cut -d "=" -f 2)
+
+.PHONY: path
+# Show command how add Go binaries to PATH making it accessible after `go install ...`
+path:
+	@echo 'export PATH="$$PATH:$$(go env GOPATH)/bin"'
+
+.PHONY: run-server
+# Run cmd/server
+run-server:
+	@go run cmd/server/wire_gen.go cmd/server/main.go -conf=./configs -dotenv=.env.local
+
+.PHONY: vendor
+# Make ./vendor folder with dependencies
+vendor:
+	@go mod tidy && go mod vendor && go mod verify
+
+.PHONY: test
+# Makes go test ./...
+test:
+	@go test -race -parallel 10 ./...
+
+.PHNOY: wire
+# Wire dependencies with google/wire
+wire:
+	@go run -mod=mod github.com/google/wire/cmd/wire ./...
+
+.PHONY: ent
+# Run ent for generate schema
+ent:
+	@go run -mod=mod entgo.io/ent/cmd/ent generate ./ent/schema
+
+.PHONY: lint
+# Run linter fo Golang files
+lint:
+	@docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:latest golangci-lint run
+
+.PHONY: update
+# Update service in Docker Swarm without downtime
+update:
+	@set -e; for service in ${SERVICES}; \
+		do docker pull ${REGISTRY_HOST}/${SERVICE_NAME}_$${service}:latest \
+			&& docker service update \
+			--with-registry-auth \
+			--image ${REGISTRY_HOST}/${SERVICE_NAME}_$${service}:latest \
+			${CLUSTER}_${SERVICE_NAME}_$${service} ; \
+	done
+
+.PHONY: deploy
+# Deploy to Docker Swarm
+deploy:
+	@env \
+		$$(cat ${INFRA_DIRECTORY}/${DOTENV} | sed '/^[[:blank:]]*#/d;s/#.*//' | xargs) \
+		docker stack deploy \
+		--orchestrator swarm \
+		--with-registry-auth \
+		-c "${CURRENT_DIRECTORY}"/${CONFIG_SWARM} \
+		${CLUSTER}
+
+.PHONY: undeploy
+# Remove service from Docker Swarm
+undeploy:
+	@set -e; for service in ${SERVICES}; \
+		do if docker service ls | grep -q "${CLUSTER}_${SERVICE_NAME}_$${service}" ; \
+			then docker service rm ${CLUSTER}_${SERVICE_NAME}_$${service} ; \
+			else echo "${CLUSTER}_${SERVICE_NAME}_$${service} is already undeployed" ; \
+		fi ; \
+	done
+
+.PHONY: push
+# Build and push image to registry
+push:
+	@set -e; for service in ${SERVICES}; \
+		do docker build -t ${REGISTRY_HOST}/${SERVICE_NAME}_$${service}:latest \
+			-f ${CURRENT_DIRECTORY}/Dockerfile-$${service} ${CURRENT_DIRECTORY}/. \
+			&& docker push ${REGISTRY_HOST}/${SERVICE_NAME}_$${service}:latest ; \
+	done
+
+.PHONY: push
+# Build and push image to registry
+pull:
+	@set -e; for service in ${SERVICES}; \
+		do docker pull ${REGISTRY_HOST}/${SERVICE_NAME}_$${service}:latest ; \
+	done
+
+.PHONY: env
+# Display environment variables from infra .env
+env:
+	@echo $$(cat ${INFRA_DIRECTORY}/${DOTENV} | sed '/^[[:blank:]]*#/d;s/#.*//' | xargs)
+
+.PHONY: grafana
+# Copy Grafana Dashboard file ./grafana_dashboard.json to infra Grafana dashboards directory
+grafana:
+	@cp -u ./grafana_dashboard.json ${INFRA_DIRECTORY}/grafana/dashboards/service-${SERVICE_NAME}.json
+
+.PHONY: logs
+# Display Docker Swarm container logger
+logs:
+	@docker logs "$$(docker ps -q -f name=${CLUSTER}_${SERVICE_NAME})"
+
+.PHONY: jwt
+# Generate JWT token for access service HTTP methods
+jwt:
+	@set -e; if [ ! -f ./bin/jwt ] ; \
+		then go build -o ./bin/jwt cmd/jwt/main.go ; \
+	fi
+	@./bin/jwt
+
+.PHONY: check
+# Make all checks (recommended before commit and push)
+check: vendor all lint test

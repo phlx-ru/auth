@@ -1,0 +1,52 @@
+syntax = "proto3";
+package kratos.api;
+
+option go_package = "auth/internal/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Log log = 1;
+  Metrics metrics = 2;
+  Server server = 3;
+  Data data = 4;
+}
+
+message Log {
+  string level = 1;
+}
+
+message Metrics {
+  string address = 1;
+  bool mute = 2;
+}
+
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
+
+message Data {
+  message Database {
+    enum Migrate {
+      none = 0;
+      soft = 1;
+      hard = 2;
+    }
+    string driver = 1;
+    string source = 2;
+    Migrate migrate = 3;
+    bool debug = 4;
+  }
+  Database database = 1;
+}

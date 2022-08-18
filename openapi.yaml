@@ -1,0 +1,376 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ""
+    version: 0.0.1
+paths:
+    /helloworld/{name}:
+        get:
+            tags:
+                - Greeter
+            description: Sends a greeting
+            operationId: Greeter_SayHello
+            parameters:
+                - name: name
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/helloworld.v1.HelloReply'
+    /v1/auth/change_password:
+        post:
+            tags:
+                - Auth
+            operationId: Auth_ChangePassword
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.ChangePasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.AuthNothing'
+    /v1/auth/generate_code:
+        post:
+            tags:
+                - Auth
+            operationId: Auth_GetCode
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.GenerateCodeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.GenerateCodeResponse'
+    /v1/auth/history:
+        post:
+            tags:
+                - Auth
+            operationId: Auth_History
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.HistoryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.HistoryResponse'
+    /v1/auth/login:
+        post:
+            tags:
+                - Auth
+            operationId: Auth_Login
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.LoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.LoginResponse'
+    /v1/auth/login_by_code:
+        post:
+            tags:
+                - Auth
+            operationId: Auth_LoginByCode
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.LoginByCodeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.LoginResponse'
+    /v1/auth/new_password:
+        post:
+            tags:
+                - Auth
+            operationId: Auth_NewPassword
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.NewPasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.AuthNothing'
+    /v1/auth/reset_password:
+        post:
+            tags:
+                - Auth
+            operationId: Auth_ResetPassword
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.ResetPasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.AuthNothing'
+    /v1/users/activate:
+        post:
+            tags:
+                - User
+            operationId: User_Activate
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.ActivateRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.UserNothing'
+    /v1/users/deactivate:
+        post:
+            tags:
+                - User
+            operationId: User_Deactivate
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.DeactivateRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.UserNothing'
+    /v1/users/edit:
+        post:
+            tags:
+                - User
+            operationId: User_Edit
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.EditRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.UserNothing'
+    /v1/users/login:
+        post:
+            tags:
+                - User
+            operationId: User_Add
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.AddRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.AddResponse'
+components:
+    schemas:
+        auth.v1.ActivateRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+        auth.v1.AddRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                displayName:
+                    type: string
+                type:
+                    type: string
+                phone:
+                    type: string
+                email:
+                    type: string
+                password:
+                    type: string
+                activated:
+                    type: boolean
+        auth.v1.AddResponse:
+            type: object
+            properties:
+                id:
+                    type: string
+        auth.v1.AuthNothing:
+            type: object
+            properties: {}
+        auth.v1.ChangePasswordRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                oldPassword:
+                    type: string
+                newPassword:
+                    type: string
+        auth.v1.DeactivateRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+        auth.v1.EditRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                displayName:
+                    type: string
+                type:
+                    type: string
+                phone:
+                    type: string
+                email:
+                    type: string
+                password:
+                    type: string
+        auth.v1.GenerateCodeRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+        auth.v1.GenerateCodeResponse:
+            type: object
+            properties:
+                code:
+                    type: string
+        auth.v1.HistoryItem:
+            type: object
+            properties:
+                id:
+                    type: integer
+                    format: int64
+                when:
+                    type: string
+                    format: date-time
+                ip:
+                    type: string
+                userAgent:
+                    type: string
+        auth.v1.HistoryRequest:
+            type: object
+            properties:
+                limit:
+                    type: integer
+                    format: int64
+        auth.v1.HistoryResponse:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/auth.v1.HistoryItem'
+        auth.v1.LoginByCodeRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                code:
+                    type: string
+                remember:
+                    type: boolean
+        auth.v1.LoginRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                password:
+                    type: string
+                remember:
+                    type: boolean
+        auth.v1.LoginResponse:
+            type: object
+            properties:
+                token:
+                    type: string
+                until:
+                    type: string
+                    format: date-time
+        auth.v1.NewPasswordRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                passwordResetUid:
+                    type: string
+                password:
+                    type: string
+        auth.v1.ResetPasswordRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+        auth.v1.UserNothing:
+            type: object
+            properties: {}
+        helloworld.v1.HelloReply:
+            type: object
+            properties:
+                message:
+                    type: string
+            description: The response message containing the greetings
+tags:
+    - name: Auth
+    - name: Greeter
+      description: The greeting service definition.
+    - name: User
