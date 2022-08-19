@@ -43,7 +43,7 @@ service Auth {
     };
   }
 
-  rpc GetCode(GenerateCodeRequest) returns (GenerateCodeResponse) {
+  rpc GenerateCode(GenerateCodeRequest) returns (GenerateCodeResponse) {
     option (google.api.http) = {
       post: "/v1/auth/generate_code"
       body: "*"
@@ -102,14 +102,16 @@ message GenerateCodeResponse {
 }
 
 message HistoryRequest {
-  int64 limit = 1;
+  int64 user_id = 1;
+  int64 limit = 2;
 }
 
 message HistoryItem {
   int64 id = 1;
   google.protobuf.Timestamp when = 2;
-  string ip = 3;
-  string user_agent = 4;
+  string event = 3;
+  string ip = 4;
+  string user_agent = 5;
 }
 
 message HistoryResponse {

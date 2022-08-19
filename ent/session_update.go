@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -27,6 +28,59 @@ func (su *SessionUpdate) Where(ps ...predicate.Session) *SessionUpdate {
 	return su
 }
 
+// SetUserID sets the "user_id" field.
+func (su *SessionUpdate) SetUserID(i int) *SessionUpdate {
+	su.mutation.ResetUserID()
+	su.mutation.SetUserID(i)
+	return su
+}
+
+// AddUserID adds i to the "user_id" field.
+func (su *SessionUpdate) AddUserID(i int) *SessionUpdate {
+	su.mutation.AddUserID(i)
+	return su
+}
+
+// SetToken sets the "token" field.
+func (su *SessionUpdate) SetToken(s string) *SessionUpdate {
+	su.mutation.SetToken(s)
+	return su
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (su *SessionUpdate) SetUpdatedAt(t time.Time) *SessionUpdate {
+	su.mutation.SetUpdatedAt(t)
+	return su
+}
+
+// SetExpiredAt sets the "expired_at" field.
+func (su *SessionUpdate) SetExpiredAt(t time.Time) *SessionUpdate {
+	su.mutation.SetExpiredAt(t)
+	return su
+}
+
+// SetNillableExpiredAt sets the "expired_at" field if the given value is not nil.
+func (su *SessionUpdate) SetNillableExpiredAt(t *time.Time) *SessionUpdate {
+	if t != nil {
+		su.SetExpiredAt(*t)
+	}
+	return su
+}
+
+// SetIsActive sets the "is_active" field.
+func (su *SessionUpdate) SetIsActive(b bool) *SessionUpdate {
+	su.mutation.SetIsActive(b)
+	return su
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (su *SessionUpdate) SetNillableIsActive(b *bool) *SessionUpdate {
+	if b != nil {
+		su.SetIsActive(*b)
+	}
+	return su
+}
+
 // Mutation returns the SessionMutation object of the builder.
 func (su *SessionUpdate) Mutation() *SessionMutation {
 	return su.mutation
@@ -38,6 +92,7 @@ func (su *SessionUpdate) Save(ctx context.Context) (int, error) {
 		err      error
 		affected int
 	)
+	su.defaults()
 	if len(su.hooks) == 0 {
 		affected, err = su.sqlSave(ctx)
 	} else {
@@ -86,6 +141,14 @@ func (su *SessionUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (su *SessionUpdate) defaults() {
+	if _, ok := su.mutation.UpdatedAt(); !ok {
+		v := session.UpdateDefaultUpdatedAt()
+		su.mutation.SetUpdatedAt(v)
+	}
+}
+
 func (su *SessionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -103,6 +166,48 @@ func (su *SessionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := su.mutation.UserID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: session.FieldUserID,
+		})
+	}
+	if value, ok := su.mutation.AddedUserID(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: session.FieldUserID,
+		})
+	}
+	if value, ok := su.mutation.Token(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldToken,
+		})
+	}
+	if value, ok := su.mutation.UpdatedAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: session.FieldUpdatedAt,
+		})
+	}
+	if value, ok := su.mutation.ExpiredAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: session.FieldExpiredAt,
+		})
+	}
+	if value, ok := su.mutation.IsActive(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: session.FieldIsActive,
+		})
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, su.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -123,6 +228,59 @@ type SessionUpdateOne struct {
 	mutation *SessionMutation
 }
 
+// SetUserID sets the "user_id" field.
+func (suo *SessionUpdateOne) SetUserID(i int) *SessionUpdateOne {
+	suo.mutation.ResetUserID()
+	suo.mutation.SetUserID(i)
+	return suo
+}
+
+// AddUserID adds i to the "user_id" field.
+func (suo *SessionUpdateOne) AddUserID(i int) *SessionUpdateOne {
+	suo.mutation.AddUserID(i)
+	return suo
+}
+
+// SetToken sets the "token" field.
+func (suo *SessionUpdateOne) SetToken(s string) *SessionUpdateOne {
+	suo.mutation.SetToken(s)
+	return suo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (suo *SessionUpdateOne) SetUpdatedAt(t time.Time) *SessionUpdateOne {
+	suo.mutation.SetUpdatedAt(t)
+	return suo
+}
+
+// SetExpiredAt sets the "expired_at" field.
+func (suo *SessionUpdateOne) SetExpiredAt(t time.Time) *SessionUpdateOne {
+	suo.mutation.SetExpiredAt(t)
+	return suo
+}
+
+// SetNillableExpiredAt sets the "expired_at" field if the given value is not nil.
+func (suo *SessionUpdateOne) SetNillableExpiredAt(t *time.Time) *SessionUpdateOne {
+	if t != nil {
+		suo.SetExpiredAt(*t)
+	}
+	return suo
+}
+
+// SetIsActive sets the "is_active" field.
+func (suo *SessionUpdateOne) SetIsActive(b bool) *SessionUpdateOne {
+	suo.mutation.SetIsActive(b)
+	return suo
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (suo *SessionUpdateOne) SetNillableIsActive(b *bool) *SessionUpdateOne {
+	if b != nil {
+		suo.SetIsActive(*b)
+	}
+	return suo
+}
+
 // Mutation returns the SessionMutation object of the builder.
 func (suo *SessionUpdateOne) Mutation() *SessionMutation {
 	return suo.mutation
@@ -141,6 +299,7 @@ func (suo *SessionUpdateOne) Save(ctx context.Context) (*Session, error) {
 		err  error
 		node *Session
 	)
+	suo.defaults()
 	if len(suo.hooks) == 0 {
 		node, err = suo.sqlSave(ctx)
 	} else {
@@ -195,6 +354,14 @@ func (suo *SessionUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (suo *SessionUpdateOne) defaults() {
+	if _, ok := suo.mutation.UpdatedAt(); !ok {
+		v := session.UpdateDefaultUpdatedAt()
+		suo.mutation.SetUpdatedAt(v)
+	}
+}
+
 func (suo *SessionUpdateOne) sqlSave(ctx context.Context) (_node *Session, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -229,6 +396,48 @@ func (suo *SessionUpdateOne) sqlSave(ctx context.Context) (_node *Session, err e
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := suo.mutation.UserID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: session.FieldUserID,
+		})
+	}
+	if value, ok := suo.mutation.AddedUserID(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: session.FieldUserID,
+		})
+	}
+	if value, ok := suo.mutation.Token(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldToken,
+		})
+	}
+	if value, ok := suo.mutation.UpdatedAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: session.FieldUpdatedAt,
+		})
+	}
+	if value, ok := suo.mutation.ExpiredAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: session.FieldExpiredAt,
+		})
+	}
+	if value, ok := suo.mutation.IsActive(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: session.FieldIsActive,
+		})
 	}
 	_node = &Session{config: suo.config}
 	_spec.Assign = _node.assignValues

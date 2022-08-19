@@ -11,6 +11,12 @@ var (
 	// CodesColumns holds the columns for the "codes" table.
 	CodesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "user_id", Type: field.TypeInt},
+		{Name: "content", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "expired_at", Type: field.TypeTime},
+		{Name: "retries", Type: field.TypeInt, Default: 0},
 	}
 	// CodesTable holds the schema information for the "codes" table.
 	CodesTable = &schema.Table{
@@ -18,9 +24,30 @@ var (
 		Columns:    CodesColumns,
 		PrimaryKey: []*schema.Column{CodesColumns[0]},
 	}
+	// HistoriesColumns holds the columns for the "histories" table.
+	HistoriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "user_id", Type: field.TypeInt},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "event", Type: field.TypeString},
+		{Name: "ip", Type: field.TypeString, Nullable: true},
+		{Name: "user_agent", Type: field.TypeString, Nullable: true},
+	}
+	// HistoriesTable holds the schema information for the "histories" table.
+	HistoriesTable = &schema.Table{
+		Name:       "histories",
+		Columns:    HistoriesColumns,
+		PrimaryKey: []*schema.Column{HistoriesColumns[0]},
+	}
 	// SessionsColumns holds the columns for the "sessions" table.
 	SessionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "user_id", Type: field.TypeInt},
+		{Name: "token", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "expired_at", Type: field.TypeTime},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
 	}
 	// SessionsTable holds the schema information for the "sessions" table.
 	SessionsTable = &schema.Table{
@@ -31,6 +58,15 @@ var (
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "display_name", Type: field.TypeString},
+		{Name: "type", Type: field.TypeString},
+		{Name: "email", Type: field.TypeString, Nullable: true},
+		{Name: "phone", Type: field.TypeString, Nullable: true},
+		{Name: "password_hash", Type: field.TypeString, Nullable: true},
+		{Name: "password_reset", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
+		{Name: "deactivated_at", Type: field.TypeTime, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -41,6 +77,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		CodesTable,
+		HistoriesTable,
 		SessionsTable,
 		UsersTable,
 	}

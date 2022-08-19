@@ -4,6 +4,7 @@ package ent
 
 import (
 	"auth/ent/code"
+	"auth/ent/history"
 	"auth/ent/session"
 	"auth/ent/user"
 	"context"
@@ -34,6 +35,7 @@ type OrderFunc func(*sql.Selector)
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
 		code.Table:    code.ValidColumn,
+		history.Table: history.ValidColumn,
 		session.Table: session.ValidColumn,
 		user.Table:    user.ValidColumn,
 	}

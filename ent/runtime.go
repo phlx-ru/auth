@@ -2,8 +2,75 @@
 
 package ent
 
+import (
+	"auth/ent/code"
+	"auth/ent/history"
+	"auth/ent/schema"
+	"auth/ent/session"
+	"auth/ent/user"
+	"time"
+)
+
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	codeFields := schema.Code{}.Fields()
+	_ = codeFields
+	// codeDescCreatedAt is the schema descriptor for created_at field.
+	codeDescCreatedAt := codeFields[2].Descriptor()
+	// code.DefaultCreatedAt holds the default value on creation for the created_at field.
+	code.DefaultCreatedAt = codeDescCreatedAt.Default.(func() time.Time)
+	// codeDescUpdatedAt is the schema descriptor for updated_at field.
+	codeDescUpdatedAt := codeFields[3].Descriptor()
+	// code.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	code.DefaultUpdatedAt = codeDescUpdatedAt.Default.(func() time.Time)
+	// code.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	code.UpdateDefaultUpdatedAt = codeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// codeDescExpiredAt is the schema descriptor for expired_at field.
+	codeDescExpiredAt := codeFields[4].Descriptor()
+	// code.DefaultExpiredAt holds the default value on creation for the expired_at field.
+	code.DefaultExpiredAt = codeDescExpiredAt.Default.(func() time.Time)
+	// codeDescRetries is the schema descriptor for retries field.
+	codeDescRetries := codeFields[5].Descriptor()
+	// code.DefaultRetries holds the default value on creation for the retries field.
+	code.DefaultRetries = codeDescRetries.Default.(int)
+	historyFields := schema.History{}.Fields()
+	_ = historyFields
+	// historyDescCreatedAt is the schema descriptor for created_at field.
+	historyDescCreatedAt := historyFields[1].Descriptor()
+	// history.DefaultCreatedAt holds the default value on creation for the created_at field.
+	history.DefaultCreatedAt = historyDescCreatedAt.Default.(func() time.Time)
+	sessionFields := schema.Session{}.Fields()
+	_ = sessionFields
+	// sessionDescCreatedAt is the schema descriptor for created_at field.
+	sessionDescCreatedAt := sessionFields[2].Descriptor()
+	// session.DefaultCreatedAt holds the default value on creation for the created_at field.
+	session.DefaultCreatedAt = sessionDescCreatedAt.Default.(func() time.Time)
+	// sessionDescUpdatedAt is the schema descriptor for updated_at field.
+	sessionDescUpdatedAt := sessionFields[3].Descriptor()
+	// session.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	session.DefaultUpdatedAt = sessionDescUpdatedAt.Default.(func() time.Time)
+	// session.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	session.UpdateDefaultUpdatedAt = sessionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// sessionDescExpiredAt is the schema descriptor for expired_at field.
+	sessionDescExpiredAt := sessionFields[4].Descriptor()
+	// session.DefaultExpiredAt holds the default value on creation for the expired_at field.
+	session.DefaultExpiredAt = sessionDescExpiredAt.Default.(func() time.Time)
+	// sessionDescIsActive is the schema descriptor for is_active field.
+	sessionDescIsActive := sessionFields[5].Descriptor()
+	// session.DefaultIsActive holds the default value on creation for the is_active field.
+	session.DefaultIsActive = sessionDescIsActive.Default.(bool)
+	userFields := schema.User{}.Fields()
+	_ = userFields
+	// userDescCreatedAt is the schema descriptor for created_at field.
+	userDescCreatedAt := userFields[6].Descriptor()
+	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
+	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
+	// userDescUpdatedAt is the schema descriptor for updated_at field.
+	userDescUpdatedAt := userFields[7].Descriptor()
+	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
+	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
 }

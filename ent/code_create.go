@@ -5,7 +5,9 @@ package ent
 import (
 	"auth/ent/code"
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -16,6 +18,74 @@ type CodeCreate struct {
 	config
 	mutation *CodeMutation
 	hooks    []Hook
+}
+
+// SetUserID sets the "user_id" field.
+func (cc *CodeCreate) SetUserID(i int) *CodeCreate {
+	cc.mutation.SetUserID(i)
+	return cc
+}
+
+// SetContent sets the "content" field.
+func (cc *CodeCreate) SetContent(s string) *CodeCreate {
+	cc.mutation.SetContent(s)
+	return cc
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (cc *CodeCreate) SetCreatedAt(t time.Time) *CodeCreate {
+	cc.mutation.SetCreatedAt(t)
+	return cc
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (cc *CodeCreate) SetNillableCreatedAt(t *time.Time) *CodeCreate {
+	if t != nil {
+		cc.SetCreatedAt(*t)
+	}
+	return cc
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (cc *CodeCreate) SetUpdatedAt(t time.Time) *CodeCreate {
+	cc.mutation.SetUpdatedAt(t)
+	return cc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (cc *CodeCreate) SetNillableUpdatedAt(t *time.Time) *CodeCreate {
+	if t != nil {
+		cc.SetUpdatedAt(*t)
+	}
+	return cc
+}
+
+// SetExpiredAt sets the "expired_at" field.
+func (cc *CodeCreate) SetExpiredAt(t time.Time) *CodeCreate {
+	cc.mutation.SetExpiredAt(t)
+	return cc
+}
+
+// SetNillableExpiredAt sets the "expired_at" field if the given value is not nil.
+func (cc *CodeCreate) SetNillableExpiredAt(t *time.Time) *CodeCreate {
+	if t != nil {
+		cc.SetExpiredAt(*t)
+	}
+	return cc
+}
+
+// SetRetries sets the "retries" field.
+func (cc *CodeCreate) SetRetries(i int) *CodeCreate {
+	cc.mutation.SetRetries(i)
+	return cc
+}
+
+// SetNillableRetries sets the "retries" field if the given value is not nil.
+func (cc *CodeCreate) SetNillableRetries(i *int) *CodeCreate {
+	if i != nil {
+		cc.SetRetries(*i)
+	}
+	return cc
 }
 
 // Mutation returns the CodeMutation object of the builder.
@@ -29,6 +99,7 @@ func (cc *CodeCreate) Save(ctx context.Context) (*Code, error) {
 		err  error
 		node *Code
 	)
+	cc.defaults()
 	if len(cc.hooks) == 0 {
 		if err = cc.check(); err != nil {
 			return nil, err
@@ -92,8 +163,46 @@ func (cc *CodeCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (cc *CodeCreate) defaults() {
+	if _, ok := cc.mutation.CreatedAt(); !ok {
+		v := code.DefaultCreatedAt()
+		cc.mutation.SetCreatedAt(v)
+	}
+	if _, ok := cc.mutation.UpdatedAt(); !ok {
+		v := code.DefaultUpdatedAt()
+		cc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := cc.mutation.ExpiredAt(); !ok {
+		v := code.DefaultExpiredAt()
+		cc.mutation.SetExpiredAt(v)
+	}
+	if _, ok := cc.mutation.Retries(); !ok {
+		v := code.DefaultRetries
+		cc.mutation.SetRetries(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (cc *CodeCreate) check() error {
+	if _, ok := cc.mutation.UserID(); !ok {
+		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Code.user_id"`)}
+	}
+	if _, ok := cc.mutation.Content(); !ok {
+		return &ValidationError{Name: "content", err: errors.New(`ent: missing required field "Code.content"`)}
+	}
+	if _, ok := cc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Code.created_at"`)}
+	}
+	if _, ok := cc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Code.updated_at"`)}
+	}
+	if _, ok := cc.mutation.ExpiredAt(); !ok {
+		return &ValidationError{Name: "expired_at", err: errors.New(`ent: missing required field "Code.expired_at"`)}
+	}
+	if _, ok := cc.mutation.Retries(); !ok {
+		return &ValidationError{Name: "retries", err: errors.New(`ent: missing required field "Code.retries"`)}
+	}
 	return nil
 }
 
@@ -121,6 +230,54 @@ func (cc *CodeCreate) createSpec() (*Code, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	if value, ok := cc.mutation.UserID(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: code.FieldUserID,
+		})
+		_node.UserID = value
+	}
+	if value, ok := cc.mutation.Content(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: code.FieldContent,
+		})
+		_node.Content = value
+	}
+	if value, ok := cc.mutation.CreatedAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: code.FieldCreatedAt,
+		})
+		_node.CreatedAt = value
+	}
+	if value, ok := cc.mutation.UpdatedAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: code.FieldUpdatedAt,
+		})
+		_node.UpdatedAt = value
+	}
+	if value, ok := cc.mutation.ExpiredAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: code.FieldExpiredAt,
+		})
+		_node.ExpiredAt = value
+	}
+	if value, ok := cc.mutation.Retries(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: code.FieldRetries,
+		})
+		_node.Retries = value
+	}
 	return _node, _spec
 }
 
@@ -138,6 +295,7 @@ func (ccb *CodeCreateBulk) Save(ctx context.Context) ([]*Code, error) {
 	for i := range ccb.builders {
 		func(i int, root context.Context) {
 			builder := ccb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*CodeMutation)
 				if !ok {

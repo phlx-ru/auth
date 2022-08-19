@@ -249,6 +249,19 @@ func (cq *CodeQuery) Clone() *CodeQuery {
 
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		UserID int `json:"user_id,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.Code.Query().
+//		GroupBy(code.FieldUserID).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
+//
 func (cq *CodeQuery) GroupBy(field string, fields ...string) *CodeGroupBy {
 	grbuild := &CodeGroupBy{config: cq.config}
 	grbuild.fields = append([]string{field}, fields...)
@@ -265,6 +278,17 @@ func (cq *CodeQuery) GroupBy(field string, fields ...string) *CodeGroupBy {
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		UserID int `json:"user_id,omitempty"`
+//	}
+//
+//	client.Code.Query().
+//		Select(code.FieldUserID).
+//		Scan(ctx, &v)
+//
 func (cq *CodeQuery) Select(fields ...string) *CodeSelect {
 	cq.fields = append(cq.fields, fields...)
 	selbuild := &CodeSelect{CodeQuery: cq}

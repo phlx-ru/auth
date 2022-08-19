@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -27,6 +28,66 @@ func (cu *CodeUpdate) Where(ps ...predicate.Code) *CodeUpdate {
 	return cu
 }
 
+// SetUserID sets the "user_id" field.
+func (cu *CodeUpdate) SetUserID(i int) *CodeUpdate {
+	cu.mutation.ResetUserID()
+	cu.mutation.SetUserID(i)
+	return cu
+}
+
+// AddUserID adds i to the "user_id" field.
+func (cu *CodeUpdate) AddUserID(i int) *CodeUpdate {
+	cu.mutation.AddUserID(i)
+	return cu
+}
+
+// SetContent sets the "content" field.
+func (cu *CodeUpdate) SetContent(s string) *CodeUpdate {
+	cu.mutation.SetContent(s)
+	return cu
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (cu *CodeUpdate) SetUpdatedAt(t time.Time) *CodeUpdate {
+	cu.mutation.SetUpdatedAt(t)
+	return cu
+}
+
+// SetExpiredAt sets the "expired_at" field.
+func (cu *CodeUpdate) SetExpiredAt(t time.Time) *CodeUpdate {
+	cu.mutation.SetExpiredAt(t)
+	return cu
+}
+
+// SetNillableExpiredAt sets the "expired_at" field if the given value is not nil.
+func (cu *CodeUpdate) SetNillableExpiredAt(t *time.Time) *CodeUpdate {
+	if t != nil {
+		cu.SetExpiredAt(*t)
+	}
+	return cu
+}
+
+// SetRetries sets the "retries" field.
+func (cu *CodeUpdate) SetRetries(i int) *CodeUpdate {
+	cu.mutation.ResetRetries()
+	cu.mutation.SetRetries(i)
+	return cu
+}
+
+// SetNillableRetries sets the "retries" field if the given value is not nil.
+func (cu *CodeUpdate) SetNillableRetries(i *int) *CodeUpdate {
+	if i != nil {
+		cu.SetRetries(*i)
+	}
+	return cu
+}
+
+// AddRetries adds i to the "retries" field.
+func (cu *CodeUpdate) AddRetries(i int) *CodeUpdate {
+	cu.mutation.AddRetries(i)
+	return cu
+}
+
 // Mutation returns the CodeMutation object of the builder.
 func (cu *CodeUpdate) Mutation() *CodeMutation {
 	return cu.mutation
@@ -38,6 +99,7 @@ func (cu *CodeUpdate) Save(ctx context.Context) (int, error) {
 		err      error
 		affected int
 	)
+	cu.defaults()
 	if len(cu.hooks) == 0 {
 		affected, err = cu.sqlSave(ctx)
 	} else {
@@ -86,6 +148,14 @@ func (cu *CodeUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (cu *CodeUpdate) defaults() {
+	if _, ok := cu.mutation.UpdatedAt(); !ok {
+		v := code.UpdateDefaultUpdatedAt()
+		cu.mutation.SetUpdatedAt(v)
+	}
+}
+
 func (cu *CodeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -103,6 +173,55 @@ func (cu *CodeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := cu.mutation.UserID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: code.FieldUserID,
+		})
+	}
+	if value, ok := cu.mutation.AddedUserID(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: code.FieldUserID,
+		})
+	}
+	if value, ok := cu.mutation.Content(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: code.FieldContent,
+		})
+	}
+	if value, ok := cu.mutation.UpdatedAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: code.FieldUpdatedAt,
+		})
+	}
+	if value, ok := cu.mutation.ExpiredAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: code.FieldExpiredAt,
+		})
+	}
+	if value, ok := cu.mutation.Retries(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: code.FieldRetries,
+		})
+	}
+	if value, ok := cu.mutation.AddedRetries(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: code.FieldRetries,
+		})
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, cu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -123,6 +242,66 @@ type CodeUpdateOne struct {
 	mutation *CodeMutation
 }
 
+// SetUserID sets the "user_id" field.
+func (cuo *CodeUpdateOne) SetUserID(i int) *CodeUpdateOne {
+	cuo.mutation.ResetUserID()
+	cuo.mutation.SetUserID(i)
+	return cuo
+}
+
+// AddUserID adds i to the "user_id" field.
+func (cuo *CodeUpdateOne) AddUserID(i int) *CodeUpdateOne {
+	cuo.mutation.AddUserID(i)
+	return cuo
+}
+
+// SetContent sets the "content" field.
+func (cuo *CodeUpdateOne) SetContent(s string) *CodeUpdateOne {
+	cuo.mutation.SetContent(s)
+	return cuo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (cuo *CodeUpdateOne) SetUpdatedAt(t time.Time) *CodeUpdateOne {
+	cuo.mutation.SetUpdatedAt(t)
+	return cuo
+}
+
+// SetExpiredAt sets the "expired_at" field.
+func (cuo *CodeUpdateOne) SetExpiredAt(t time.Time) *CodeUpdateOne {
+	cuo.mutation.SetExpiredAt(t)
+	return cuo
+}
+
+// SetNillableExpiredAt sets the "expired_at" field if the given value is not nil.
+func (cuo *CodeUpdateOne) SetNillableExpiredAt(t *time.Time) *CodeUpdateOne {
+	if t != nil {
+		cuo.SetExpiredAt(*t)
+	}
+	return cuo
+}
+
+// SetRetries sets the "retries" field.
+func (cuo *CodeUpdateOne) SetRetries(i int) *CodeUpdateOne {
+	cuo.mutation.ResetRetries()
+	cuo.mutation.SetRetries(i)
+	return cuo
+}
+
+// SetNillableRetries sets the "retries" field if the given value is not nil.
+func (cuo *CodeUpdateOne) SetNillableRetries(i *int) *CodeUpdateOne {
+	if i != nil {
+		cuo.SetRetries(*i)
+	}
+	return cuo
+}
+
+// AddRetries adds i to the "retries" field.
+func (cuo *CodeUpdateOne) AddRetries(i int) *CodeUpdateOne {
+	cuo.mutation.AddRetries(i)
+	return cuo
+}
+
 // Mutation returns the CodeMutation object of the builder.
 func (cuo *CodeUpdateOne) Mutation() *CodeMutation {
 	return cuo.mutation
@@ -141,6 +320,7 @@ func (cuo *CodeUpdateOne) Save(ctx context.Context) (*Code, error) {
 		err  error
 		node *Code
 	)
+	cuo.defaults()
 	if len(cuo.hooks) == 0 {
 		node, err = cuo.sqlSave(ctx)
 	} else {
@@ -195,6 +375,14 @@ func (cuo *CodeUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (cuo *CodeUpdateOne) defaults() {
+	if _, ok := cuo.mutation.UpdatedAt(); !ok {
+		v := code.UpdateDefaultUpdatedAt()
+		cuo.mutation.SetUpdatedAt(v)
+	}
+}
+
 func (cuo *CodeUpdateOne) sqlSave(ctx context.Context) (_node *Code, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -229,6 +417,55 @@ func (cuo *CodeUpdateOne) sqlSave(ctx context.Context) (_node *Code, err error) 
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := cuo.mutation.UserID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: code.FieldUserID,
+		})
+	}
+	if value, ok := cuo.mutation.AddedUserID(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: code.FieldUserID,
+		})
+	}
+	if value, ok := cuo.mutation.Content(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: code.FieldContent,
+		})
+	}
+	if value, ok := cuo.mutation.UpdatedAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: code.FieldUpdatedAt,
+		})
+	}
+	if value, ok := cuo.mutation.ExpiredAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: code.FieldExpiredAt,
+		})
+	}
+	if value, ok := cuo.mutation.Retries(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: code.FieldRetries,
+		})
+	}
+	if value, ok := cuo.mutation.AddedRetries(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: code.FieldRetries,
+		})
 	}
 	_node = &Code{config: cuo.config}
 	_spec.Assign = _node.assignValues

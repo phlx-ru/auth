@@ -9,6 +9,9 @@ import (
 // Code is the predicate function for code builders.
 type Code func(*sql.Selector)
 
+// History is the predicate function for history builders.
+type History func(*sql.Selector)
+
 // Session is the predicate function for session builders.
 type Session func(*sql.Selector)
 

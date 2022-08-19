@@ -11,6 +11,7 @@ import (
 	"auth/ent/migrate"
 
 	"auth/ent/code"
+	"auth/ent/history"
 	"auth/ent/session"
 	"auth/ent/user"
 
@@ -25,6 +26,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// Code is the client for interacting with the Code builders.
 	Code *CodeClient
+	// History is the client for interacting with the History builders.
+	History *HistoryClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
 	// User is the client for interacting with the User builders.
@@ -43,6 +46,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Code = NewCodeClient(c.config)
+	c.History = NewHistoryClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.User = NewUserClient(c.config)
 }
@@ -79,6 +83,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:     ctx,
 		config:  cfg,
 		Code:    NewCodeClient(cfg),
+		History: NewHistoryClient(cfg),
 		Session: NewSessionClient(cfg),
 		User:    NewUserClient(cfg),
 	}, nil
@@ -101,6 +106,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:     ctx,
 		config:  cfg,
 		Code:    NewCodeClient(cfg),
+		History: NewHistoryClient(cfg),
 		Session: NewSessionClient(cfg),
 		User:    NewUserClient(cfg),
 	}, nil
@@ -133,6 +139,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	c.Code.Use(hooks...)
+	c.History.Use(hooks...)
 	c.Session.Use(hooks...)
 	c.User.Use(hooks...)
 }
@@ -225,6 +232,96 @@ func (c *CodeClient) GetX(ctx context.Context, id int) *Code {
 // Hooks returns the client hooks.
 func (c *CodeClient) Hooks() []Hook {
 	return c.hooks.Code
+}
+
+// HistoryClient is a client for the History schema.
+type HistoryClient struct {
+	config
+}
+
+// NewHistoryClient returns a client for the History from the given config.
+func NewHistoryClient(c config) *HistoryClient {
+	return &HistoryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `history.Hooks(f(g(h())))`.
+func (c *HistoryClient) Use(hooks ...Hook) {
+	c.hooks.History = append(c.hooks.History, hooks...)
+}
+
+// Create returns a builder for creating a History entity.
+func (c *HistoryClient) Create() *HistoryCreate {
+	mutation := newHistoryMutation(c.config, OpCreate)
+	return &HistoryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of History entities.
+func (c *HistoryClient) CreateBulk(builders ...*HistoryCreate) *HistoryCreateBulk {
+	return &HistoryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for History.
+func (c *HistoryClient) Update() *HistoryUpdate {
+	mutation := newHistoryMutation(c.config, OpUpdate)
+	return &HistoryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *HistoryClient) UpdateOne(h *History) *HistoryUpdateOne {
+	mutation := newHistoryMutation(c.config, OpUpdateOne, withHistory(h))
+	return &HistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *HistoryClient) UpdateOneID(id int) *HistoryUpdateOne {
+	mutation := newHistoryMutation(c.config, OpUpdateOne, withHistoryID(id))
+	return &HistoryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for History.
+func (c *HistoryClient) Delete() *HistoryDelete {
+	mutation := newHistoryMutation(c.config, OpDelete)
+	return &HistoryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *HistoryClient) DeleteOne(h *History) *HistoryDeleteOne {
+	return c.DeleteOneID(h.ID)
+}
+
+// DeleteOne returns a builder for deleting the given entity by its id.
+func (c *HistoryClient) DeleteOneID(id int) *HistoryDeleteOne {
+	builder := c.Delete().Where(history.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &HistoryDeleteOne{builder}
+}
+
+// Query returns a query builder for History.
+func (c *HistoryClient) Query() *HistoryQuery {
+	return &HistoryQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a History entity by its id.
+func (c *HistoryClient) Get(ctx context.Context, id int) (*History, error) {
+	return c.Query().Where(history.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *HistoryClient) GetX(ctx context.Context, id int) *History {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *HistoryClient) Hooks() []Hook {
+	return c.hooks.History
 }
 
 // SessionClient is a client for the Session schema.

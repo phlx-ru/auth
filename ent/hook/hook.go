@@ -21,6 +21,19 @@ func (f CodeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return f(ctx, mv)
 }
 
+// The HistoryFunc type is an adapter to allow the use of ordinary
+// function as History mutator.
+type HistoryFunc func(context.Context, *ent.HistoryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f HistoryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.HistoryMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HistoryMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The SessionFunc type is an adapter to allow the use of ordinary
 // function as Session mutator.
 type SessionFunc func(context.Context, *ent.SessionMutation) (ent.Value, error)

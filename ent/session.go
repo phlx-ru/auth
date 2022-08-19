@@ -6,15 +6,28 @@ import (
 	"auth/ent/session"
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 )
 
 // Session is the model entity for the Session schema.
 type Session struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// user identification number
+	UserID int `json:"user_id,omitempty"`
+	// user auth token
+	Token string `json:"-"`
+	// creation time of session
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// last update time of session
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// time of session expiration
+	ExpiredAt time.Time `json:"expired_at,omitempty"`
+	// session activity flag
+	IsActive bool `json:"is_active,omitempty"`
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -22,8 +35,14 @@ func (*Session) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case session.FieldID:
+		case session.FieldIsActive:
+			values[i] = new(sql.NullBool)
+		case session.FieldID, session.FieldUserID:
 			values[i] = new(sql.NullInt64)
+		case session.FieldToken:
+			values[i] = new(sql.NullString)
+		case session.FieldCreatedAt, session.FieldUpdatedAt, session.FieldExpiredAt:
+			values[i] = new(sql.NullTime)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Session", columns[i])
 		}
@@ -45,6 +64,42 @@ func (s *Session) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			s.ID = int(value.Int64)
+		case session.FieldUserID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
+			} else if value.Valid {
+				s.UserID = int(value.Int64)
+			}
+		case session.FieldToken:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field token", values[i])
+			} else if value.Valid {
+				s.Token = value.String
+			}
+		case session.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				s.CreatedAt = value.Time
+			}
+		case session.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				s.UpdatedAt = value.Time
+			}
+		case session.FieldExpiredAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field expired_at", values[i])
+			} else if value.Valid {
+				s.ExpiredAt = value.Time
+			}
+		case session.FieldIsActive:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_active", values[i])
+			} else if value.Valid {
+				s.IsActive = value.Bool
+			}
 		}
 	}
 	return nil
@@ -72,7 +127,23 @@ func (s *Session) Unwrap() *Session {
 func (s *Session) String() string {
 	var builder strings.Builder
 	builder.WriteString("Session(")
-	builder.WriteString(fmt.Sprintf("id=%v", s.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", s.ID))
+	builder.WriteString("user_id=")
+	builder.WriteString(fmt.Sprintf("%v", s.UserID))
+	builder.WriteString(", ")
+	builder.WriteString("token=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(s.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(s.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("expired_at=")
+	builder.WriteString(s.ExpiredAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("is_active=")
+	builder.WriteString(fmt.Sprintf("%v", s.IsActive))
 	builder.WriteByte(')')
 	return builder.String()
 }

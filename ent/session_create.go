@@ -5,7 +5,9 @@ package ent
 import (
 	"auth/ent/session"
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -16,6 +18,74 @@ type SessionCreate struct {
 	config
 	mutation *SessionMutation
 	hooks    []Hook
+}
+
+// SetUserID sets the "user_id" field.
+func (sc *SessionCreate) SetUserID(i int) *SessionCreate {
+	sc.mutation.SetUserID(i)
+	return sc
+}
+
+// SetToken sets the "token" field.
+func (sc *SessionCreate) SetToken(s string) *SessionCreate {
+	sc.mutation.SetToken(s)
+	return sc
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (sc *SessionCreate) SetCreatedAt(t time.Time) *SessionCreate {
+	sc.mutation.SetCreatedAt(t)
+	return sc
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (sc *SessionCreate) SetNillableCreatedAt(t *time.Time) *SessionCreate {
+	if t != nil {
+		sc.SetCreatedAt(*t)
+	}
+	return sc
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (sc *SessionCreate) SetUpdatedAt(t time.Time) *SessionCreate {
+	sc.mutation.SetUpdatedAt(t)
+	return sc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (sc *SessionCreate) SetNillableUpdatedAt(t *time.Time) *SessionCreate {
+	if t != nil {
+		sc.SetUpdatedAt(*t)
+	}
+	return sc
+}
+
+// SetExpiredAt sets the "expired_at" field.
+func (sc *SessionCreate) SetExpiredAt(t time.Time) *SessionCreate {
+	sc.mutation.SetExpiredAt(t)
+	return sc
+}
+
+// SetNillableExpiredAt sets the "expired_at" field if the given value is not nil.
+func (sc *SessionCreate) SetNillableExpiredAt(t *time.Time) *SessionCreate {
+	if t != nil {
+		sc.SetExpiredAt(*t)
+	}
+	return sc
+}
+
+// SetIsActive sets the "is_active" field.
+func (sc *SessionCreate) SetIsActive(b bool) *SessionCreate {
+	sc.mutation.SetIsActive(b)
+	return sc
+}
+
+// SetNillableIsActive sets the "is_active" field if the given value is not nil.
+func (sc *SessionCreate) SetNillableIsActive(b *bool) *SessionCreate {
+	if b != nil {
+		sc.SetIsActive(*b)
+	}
+	return sc
 }
 
 // Mutation returns the SessionMutation object of the builder.
@@ -29,6 +99,7 @@ func (sc *SessionCreate) Save(ctx context.Context) (*Session, error) {
 		err  error
 		node *Session
 	)
+	sc.defaults()
 	if len(sc.hooks) == 0 {
 		if err = sc.check(); err != nil {
 			return nil, err
@@ -92,8 +163,46 @@ func (sc *SessionCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (sc *SessionCreate) defaults() {
+	if _, ok := sc.mutation.CreatedAt(); !ok {
+		v := session.DefaultCreatedAt()
+		sc.mutation.SetCreatedAt(v)
+	}
+	if _, ok := sc.mutation.UpdatedAt(); !ok {
+		v := session.DefaultUpdatedAt()
+		sc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := sc.mutation.ExpiredAt(); !ok {
+		v := session.DefaultExpiredAt()
+		sc.mutation.SetExpiredAt(v)
+	}
+	if _, ok := sc.mutation.IsActive(); !ok {
+		v := session.DefaultIsActive
+		sc.mutation.SetIsActive(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (sc *SessionCreate) check() error {
+	if _, ok := sc.mutation.UserID(); !ok {
+		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Session.user_id"`)}
+	}
+	if _, ok := sc.mutation.Token(); !ok {
+		return &ValidationError{Name: "token", err: errors.New(`ent: missing required field "Session.token"`)}
+	}
+	if _, ok := sc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Session.created_at"`)}
+	}
+	if _, ok := sc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Session.updated_at"`)}
+	}
+	if _, ok := sc.mutation.ExpiredAt(); !ok {
+		return &ValidationError{Name: "expired_at", err: errors.New(`ent: missing required field "Session.expired_at"`)}
+	}
+	if _, ok := sc.mutation.IsActive(); !ok {
+		return &ValidationError{Name: "is_active", err: errors.New(`ent: missing required field "Session.is_active"`)}
+	}
 	return nil
 }
 
@@ -121,6 +230,54 @@ func (sc *SessionCreate) createSpec() (*Session, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	if value, ok := sc.mutation.UserID(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: session.FieldUserID,
+		})
+		_node.UserID = value
+	}
+	if value, ok := sc.mutation.Token(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldToken,
+		})
+		_node.Token = value
+	}
+	if value, ok := sc.mutation.CreatedAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: session.FieldCreatedAt,
+		})
+		_node.CreatedAt = value
+	}
+	if value, ok := sc.mutation.UpdatedAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: session.FieldUpdatedAt,
+		})
+		_node.UpdatedAt = value
+	}
+	if value, ok := sc.mutation.ExpiredAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: session.FieldExpiredAt,
+		})
+		_node.ExpiredAt = value
+	}
+	if value, ok := sc.mutation.IsActive(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeBool,
+			Value:  value,
+			Column: session.FieldIsActive,
+		})
+		_node.IsActive = value
+	}
 	return _node, _spec
 }
 
@@ -138,6 +295,7 @@ func (scb *SessionCreateBulk) Save(ctx context.Context) ([]*Session, error) {
 	for i := range scb.builders {
 		func(i int, root context.Context) {
 			builder := scb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*SessionMutation)
 				if !ok {

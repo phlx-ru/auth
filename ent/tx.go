@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Code is the client for interacting with the Code builders.
 	Code *CodeClient
+	// History is the client for interacting with the History builders.
+	History *HistoryClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
 	// User is the client for interacting with the User builders.
@@ -154,6 +156,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Code = NewCodeClient(tx.config)
+	tx.History = NewHistoryClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }

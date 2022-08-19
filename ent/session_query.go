@@ -249,6 +249,19 @@ func (sq *SessionQuery) Clone() *SessionQuery {
 
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		UserID int `json:"user_id,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.Session.Query().
+//		GroupBy(session.FieldUserID).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
+//
 func (sq *SessionQuery) GroupBy(field string, fields ...string) *SessionGroupBy {
 	grbuild := &SessionGroupBy{config: sq.config}
 	grbuild.fields = append([]string{field}, fields...)
@@ -265,6 +278,17 @@ func (sq *SessionQuery) GroupBy(field string, fields ...string) *SessionGroupBy 
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		UserID int `json:"user_id,omitempty"`
+//	}
+//
+//	client.Session.Query().
+//		Select(session.FieldUserID).
+//		Scan(ctx, &v)
+//
 func (sq *SessionQuery) Select(fields ...string) *SessionSelect {
 	sq.fields = append(sq.fields, fields...)
 	selbuild := &SessionSelect{SessionQuery: sq}
