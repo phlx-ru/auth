@@ -67,27 +67,6 @@ func (cu *CodeUpdate) SetNillableExpiredAt(t *time.Time) *CodeUpdate {
 	return cu
 }
 
-// SetRetries sets the "retries" field.
-func (cu *CodeUpdate) SetRetries(i int) *CodeUpdate {
-	cu.mutation.ResetRetries()
-	cu.mutation.SetRetries(i)
-	return cu
-}
-
-// SetNillableRetries sets the "retries" field if the given value is not nil.
-func (cu *CodeUpdate) SetNillableRetries(i *int) *CodeUpdate {
-	if i != nil {
-		cu.SetRetries(*i)
-	}
-	return cu
-}
-
-// AddRetries adds i to the "retries" field.
-func (cu *CodeUpdate) AddRetries(i int) *CodeUpdate {
-	cu.mutation.AddRetries(i)
-	return cu
-}
-
 // Mutation returns the CodeMutation object of the builder.
 func (cu *CodeUpdate) Mutation() *CodeMutation {
 	return cu.mutation
@@ -209,20 +188,6 @@ func (cu *CodeUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: code.FieldExpiredAt,
 		})
 	}
-	if value, ok := cu.mutation.Retries(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeInt,
-			Value:  value,
-			Column: code.FieldRetries,
-		})
-	}
-	if value, ok := cu.mutation.AddedRetries(); ok {
-		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
-			Type:   field.TypeInt,
-			Value:  value,
-			Column: code.FieldRetries,
-		})
-	}
 	if n, err = sqlgraph.UpdateNodes(ctx, cu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{code.Label}
@@ -278,27 +243,6 @@ func (cuo *CodeUpdateOne) SetNillableExpiredAt(t *time.Time) *CodeUpdateOne {
 	if t != nil {
 		cuo.SetExpiredAt(*t)
 	}
-	return cuo
-}
-
-// SetRetries sets the "retries" field.
-func (cuo *CodeUpdateOne) SetRetries(i int) *CodeUpdateOne {
-	cuo.mutation.ResetRetries()
-	cuo.mutation.SetRetries(i)
-	return cuo
-}
-
-// SetNillableRetries sets the "retries" field if the given value is not nil.
-func (cuo *CodeUpdateOne) SetNillableRetries(i *int) *CodeUpdateOne {
-	if i != nil {
-		cuo.SetRetries(*i)
-	}
-	return cuo
-}
-
-// AddRetries adds i to the "retries" field.
-func (cuo *CodeUpdateOne) AddRetries(i int) *CodeUpdateOne {
-	cuo.mutation.AddRetries(i)
 	return cuo
 }
 
@@ -451,20 +395,6 @@ func (cuo *CodeUpdateOne) sqlSave(ctx context.Context) (_node *Code, err error) 
 			Type:   field.TypeTime,
 			Value:  value,
 			Column: code.FieldExpiredAt,
-		})
-	}
-	if value, ok := cuo.mutation.Retries(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeInt,
-			Value:  value,
-			Column: code.FieldRetries,
-		})
-	}
-	if value, ok := cuo.mutation.AddedRetries(); ok {
-		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
-			Type:   field.TypeInt,
-			Value:  value,
-			Column: code.FieldRetries,
 		})
 	}
 	_node = &Code{config: cuo.config}

@@ -115,13 +115,6 @@ func ExpiredAt(v time.Time) predicate.Code {
 	})
 }
 
-// Retries applies equality check predicate on the "retries" field. It's identical to RetriesEQ.
-func Retries(v int) predicate.Code {
-	return predicate.Code(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldRetries), v))
-	})
-}
-
 // UserIDEQ applies the EQ predicate on the "user_id" field.
 func UserIDEQ(v int) predicate.Code {
 	return predicate.Code(func(s *sql.Selector) {
@@ -474,70 +467,6 @@ func ExpiredAtLT(v time.Time) predicate.Code {
 func ExpiredAtLTE(v time.Time) predicate.Code {
 	return predicate.Code(func(s *sql.Selector) {
 		s.Where(sql.LTE(s.C(FieldExpiredAt), v))
-	})
-}
-
-// RetriesEQ applies the EQ predicate on the "retries" field.
-func RetriesEQ(v int) predicate.Code {
-	return predicate.Code(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldRetries), v))
-	})
-}
-
-// RetriesNEQ applies the NEQ predicate on the "retries" field.
-func RetriesNEQ(v int) predicate.Code {
-	return predicate.Code(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldRetries), v))
-	})
-}
-
-// RetriesIn applies the In predicate on the "retries" field.
-func RetriesIn(vs ...int) predicate.Code {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Code(func(s *sql.Selector) {
-		s.Where(sql.In(s.C(FieldRetries), v...))
-	})
-}
-
-// RetriesNotIn applies the NotIn predicate on the "retries" field.
-func RetriesNotIn(vs ...int) predicate.Code {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Code(func(s *sql.Selector) {
-		s.Where(sql.NotIn(s.C(FieldRetries), v...))
-	})
-}
-
-// RetriesGT applies the GT predicate on the "retries" field.
-func RetriesGT(v int) predicate.Code {
-	return predicate.Code(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldRetries), v))
-	})
-}
-
-// RetriesGTE applies the GTE predicate on the "retries" field.
-func RetriesGTE(v int) predicate.Code {
-	return predicate.Code(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldRetries), v))
-	})
-}
-
-// RetriesLT applies the LT predicate on the "retries" field.
-func RetriesLT(v int) predicate.Code {
-	return predicate.Code(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldRetries), v))
-	})
-}
-
-// RetriesLTE applies the LTE predicate on the "retries" field.
-func RetriesLTE(v int) predicate.Code {
-	return predicate.Code(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldRetries), v))
 	})
 }
 

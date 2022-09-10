@@ -60,6 +60,20 @@ func (uc *UserCreate) SetNillablePhone(s *string) *UserCreate {
 	return uc
 }
 
+// SetTelegramChatID sets the "telegram_chat_id" field.
+func (uc *UserCreate) SetTelegramChatID(s string) *UserCreate {
+	uc.mutation.SetTelegramChatID(s)
+	return uc
+}
+
+// SetNillableTelegramChatID sets the "telegram_chat_id" field if the given value is not nil.
+func (uc *UserCreate) SetNillableTelegramChatID(s *string) *UserCreate {
+	if s != nil {
+		uc.SetTelegramChatID(*s)
+	}
+	return uc
+}
+
 // SetPasswordHash sets the "password_hash" field.
 func (uc *UserCreate) SetPasswordHash(s string) *UserCreate {
 	uc.mutation.SetPasswordHash(s)
@@ -289,6 +303,14 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Column: user.FieldPhone,
 		})
 		_node.Phone = &value
+	}
+	if value, ok := uc.mutation.TelegramChatID(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldTelegramChatID,
+		})
+		_node.TelegramChatID = &value
 	}
 	if value, ok := uc.mutation.PasswordHash(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{

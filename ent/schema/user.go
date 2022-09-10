@@ -6,6 +6,21 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
+)
+
+const (
+	TypeAdmin      = `admin`
+	TypeDispatcher = `dispatcher`
+	TypeDriver     = `driver`
+)
+
+var (
+	UserTypes = []string{
+		TypeAdmin,
+		TypeDispatcher,
+		TypeDriver,
+	}
 )
 
 // User holds the schema definition for the User entity.
@@ -31,6 +46,11 @@ func (User) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment(`users phone`),
+
+		field.String(`telegram_chat_id`).
+			Optional().
+			Nillable().
+			Comment(`chat_id for telegram`),
 
 		field.String(`password_hash`).
 			Optional().
@@ -70,4 +90,12 @@ func (User) Fields() []ent.Field {
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return nil
+}
+
+func (User) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields(`type`),
+		index.Fields(`email`).Unique(),
+		index.Fields(`phone`).Unique(),
+	}
 }

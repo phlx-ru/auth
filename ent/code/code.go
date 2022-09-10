@@ -21,8 +21,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldExpiredAt holds the string denoting the expired_at field in the database.
 	FieldExpiredAt = "expired_at"
-	// FieldRetries holds the string denoting the retries field in the database.
-	FieldRetries = "retries"
 	// Table holds the table name of the code in the database.
 	Table = "codes"
 )
@@ -35,7 +33,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldExpiredAt,
-	FieldRetries,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -57,6 +54,4 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultExpiredAt holds the default value on creation for the "expired_at" field.
 	DefaultExpiredAt func() time.Time
-	// DefaultRetries holds the default value on creation for the "retries" field.
-	DefaultRetries int
 )

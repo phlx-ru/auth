@@ -26,8 +26,6 @@ type Code struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// time of code expiration
 	ExpiredAt time.Time `json:"expired_at,omitempty"`
-	// count of failed retries to input code
-	Retries int `json:"retries,omitempty"`
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -35,7 +33,7 @@ func (*Code) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case code.FieldID, code.FieldUserID, code.FieldRetries:
+		case code.FieldID, code.FieldUserID:
 			values[i] = new(sql.NullInt64)
 		case code.FieldContent:
 			values[i] = new(sql.NullString)
@@ -92,12 +90,6 @@ func (c *Code) assignValues(columns []string, values []interface{}) error {
 			} else if value.Valid {
 				c.ExpiredAt = value.Time
 			}
-		case code.FieldRetries:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field retries", values[i])
-			} else if value.Valid {
-				c.Retries = int(value.Int64)
-			}
 		}
 	}
 	return nil
@@ -139,9 +131,6 @@ func (c *Code) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("expired_at=")
 	builder.WriteString(c.ExpiredAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("retries=")
-	builder.WriteString(fmt.Sprintf("%v", c.Retries))
 	builder.WriteByte(')')
 	return builder.String()
 }

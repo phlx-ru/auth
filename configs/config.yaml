@@ -16,3 +16,11 @@ data:
     source: host=${POSTGRES_HOST:localhost} port=${POSTGRES_PORT:5432} user=${POSTGRES_USER:postgres} password=${POSTGRES_PASS:postgres} dbname=${POSTGRES_DB:auth} sslmode=disable
     migrate: ${DATA_DATABASE_MIGRATE:soft} # (soft|hard|none)
     debug: ${DATA_DATABASE_DEBUG:false}
+auth:
+  jwt:
+    secret: ${AUTH_JWT_SECRET}
+client:
+  grpc:
+    notifications:
+      endpoint: ${CLIENT_GRPC_NOTIFICATIONS_ENDPOINT:notifications-server:9000}
+      timeout: ${CLIENT_GRPC_NOTIFICATIONS_TIMEOUT:10s}

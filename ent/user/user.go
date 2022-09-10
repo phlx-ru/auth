@@ -19,6 +19,8 @@ const (
 	FieldEmail = "email"
 	// FieldPhone holds the string denoting the phone field in the database.
 	FieldPhone = "phone"
+	// FieldTelegramChatID holds the string denoting the telegram_chat_id field in the database.
+	FieldTelegramChatID = "telegram_chat_id"
 	// FieldPasswordHash holds the string denoting the password_hash field in the database.
 	FieldPasswordHash = "password_hash"
 	// FieldPasswordReset holds the string denoting the password_reset field in the database.
@@ -40,6 +42,7 @@ var Columns = []string{
 	FieldType,
 	FieldEmail,
 	FieldPhone,
+	FieldTelegramChatID,
 	FieldPasswordHash,
 	FieldPasswordReset,
 	FieldCreatedAt,

@@ -16,13 +16,24 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "expired_at", Type: field.TypeTime},
-		{Name: "retries", Type: field.TypeInt, Default: 0},
 	}
 	// CodesTable holds the schema information for the "codes" table.
 	CodesTable = &schema.Table{
 		Name:       "codes",
 		Columns:    CodesColumns,
 		PrimaryKey: []*schema.Column{CodesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "code_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{CodesColumns[1]},
+			},
+			{
+				Name:    "code_expired_at",
+				Unique:  false,
+				Columns: []*schema.Column{CodesColumns[5]},
+			},
+		},
 	}
 	// HistoriesColumns holds the columns for the "histories" table.
 	HistoriesColumns = []*schema.Column{
@@ -38,12 +49,32 @@ var (
 		Name:       "histories",
 		Columns:    HistoriesColumns,
 		PrimaryKey: []*schema.Column{HistoriesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "history_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{HistoriesColumns[1]},
+			},
+			{
+				Name:    "history_event",
+				Unique:  false,
+				Columns: []*schema.Column{HistoriesColumns[3]},
+			},
+			{
+				Name:    "history_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{HistoriesColumns[2]},
+			},
+		},
 	}
 	// SessionsColumns holds the columns for the "sessions" table.
 	SessionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "user_id", Type: field.TypeInt},
 		{Name: "token", Type: field.TypeString},
+		{Name: "ip", Type: field.TypeString},
+		{Name: "user_agent", Type: field.TypeString},
+		{Name: "device_id", Type: field.TypeString, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "expired_at", Type: field.TypeTime},
@@ -54,6 +85,23 @@ var (
 		Name:       "sessions",
 		Columns:    SessionsColumns,
 		PrimaryKey: []*schema.Column{SessionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "session_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[1]},
+			},
+			{
+				Name:    "session_token",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[2]},
+			},
+			{
+				Name:    "session_expired_at",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[8]},
+			},
+		},
 	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
@@ -62,6 +110,7 @@ var (
 		{Name: "type", Type: field.TypeString},
 		{Name: "email", Type: field.TypeString, Nullable: true},
 		{Name: "phone", Type: field.TypeString, Nullable: true},
+		{Name: "telegram_chat_id", Type: field.TypeString, Nullable: true},
 		{Name: "password_hash", Type: field.TypeString, Nullable: true},
 		{Name: "password_reset", Type: field.TypeString, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
@@ -73,6 +122,23 @@ var (
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "user_type",
+				Unique:  false,
+				Columns: []*schema.Column{UsersColumns[2]},
+			},
+			{
+				Name:    "user_email",
+				Unique:  true,
+				Columns: []*schema.Column{UsersColumns[3]},
+			},
+			{
+				Name:    "user_phone",
+				Unique:  true,
+				Columns: []*schema.Column{UsersColumns[4]},
+			},
+		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{

@@ -94,6 +94,27 @@ func Token(v string) predicate.Session {
 	})
 }
 
+// IP applies equality check predicate on the "ip" field. It's identical to IPEQ.
+func IP(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldIP), v))
+	})
+}
+
+// UserAgent applies equality check predicate on the "user_agent" field. It's identical to UserAgentEQ.
+func UserAgent(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldUserAgent), v))
+	})
+}
+
+// DeviceID applies equality check predicate on the "device_id" field. It's identical to DeviceIDEQ.
+func DeviceID(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldDeviceID), v))
+	})
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Session {
 	return predicate.Session(func(s *sql.Selector) {
@@ -282,6 +303,317 @@ func TokenEqualFold(v string) predicate.Session {
 func TokenContainsFold(v string) predicate.Session {
 	return predicate.Session(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldToken), v))
+	})
+}
+
+// IPEQ applies the EQ predicate on the "ip" field.
+func IPEQ(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldIP), v))
+	})
+}
+
+// IPNEQ applies the NEQ predicate on the "ip" field.
+func IPNEQ(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldIP), v))
+	})
+}
+
+// IPIn applies the In predicate on the "ip" field.
+func IPIn(vs ...string) predicate.Session {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.In(s.C(FieldIP), v...))
+	})
+}
+
+// IPNotIn applies the NotIn predicate on the "ip" field.
+func IPNotIn(vs ...string) predicate.Session {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.NotIn(s.C(FieldIP), v...))
+	})
+}
+
+// IPGT applies the GT predicate on the "ip" field.
+func IPGT(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldIP), v))
+	})
+}
+
+// IPGTE applies the GTE predicate on the "ip" field.
+func IPGTE(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldIP), v))
+	})
+}
+
+// IPLT applies the LT predicate on the "ip" field.
+func IPLT(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldIP), v))
+	})
+}
+
+// IPLTE applies the LTE predicate on the "ip" field.
+func IPLTE(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldIP), v))
+	})
+}
+
+// IPContains applies the Contains predicate on the "ip" field.
+func IPContains(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldIP), v))
+	})
+}
+
+// IPHasPrefix applies the HasPrefix predicate on the "ip" field.
+func IPHasPrefix(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldIP), v))
+	})
+}
+
+// IPHasSuffix applies the HasSuffix predicate on the "ip" field.
+func IPHasSuffix(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldIP), v))
+	})
+}
+
+// IPEqualFold applies the EqualFold predicate on the "ip" field.
+func IPEqualFold(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldIP), v))
+	})
+}
+
+// IPContainsFold applies the ContainsFold predicate on the "ip" field.
+func IPContainsFold(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldIP), v))
+	})
+}
+
+// UserAgentEQ applies the EQ predicate on the "user_agent" field.
+func UserAgentEQ(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldUserAgent), v))
+	})
+}
+
+// UserAgentNEQ applies the NEQ predicate on the "user_agent" field.
+func UserAgentNEQ(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldUserAgent), v))
+	})
+}
+
+// UserAgentIn applies the In predicate on the "user_agent" field.
+func UserAgentIn(vs ...string) predicate.Session {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.In(s.C(FieldUserAgent), v...))
+	})
+}
+
+// UserAgentNotIn applies the NotIn predicate on the "user_agent" field.
+func UserAgentNotIn(vs ...string) predicate.Session {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.NotIn(s.C(FieldUserAgent), v...))
+	})
+}
+
+// UserAgentGT applies the GT predicate on the "user_agent" field.
+func UserAgentGT(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldUserAgent), v))
+	})
+}
+
+// UserAgentGTE applies the GTE predicate on the "user_agent" field.
+func UserAgentGTE(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldUserAgent), v))
+	})
+}
+
+// UserAgentLT applies the LT predicate on the "user_agent" field.
+func UserAgentLT(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldUserAgent), v))
+	})
+}
+
+// UserAgentLTE applies the LTE predicate on the "user_agent" field.
+func UserAgentLTE(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldUserAgent), v))
+	})
+}
+
+// UserAgentContains applies the Contains predicate on the "user_agent" field.
+func UserAgentContains(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldUserAgent), v))
+	})
+}
+
+// UserAgentHasPrefix applies the HasPrefix predicate on the "user_agent" field.
+func UserAgentHasPrefix(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldUserAgent), v))
+	})
+}
+
+// UserAgentHasSuffix applies the HasSuffix predicate on the "user_agent" field.
+func UserAgentHasSuffix(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldUserAgent), v))
+	})
+}
+
+// UserAgentEqualFold applies the EqualFold predicate on the "user_agent" field.
+func UserAgentEqualFold(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldUserAgent), v))
+	})
+}
+
+// UserAgentContainsFold applies the ContainsFold predicate on the "user_agent" field.
+func UserAgentContainsFold(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldUserAgent), v))
+	})
+}
+
+// DeviceIDEQ applies the EQ predicate on the "device_id" field.
+func DeviceIDEQ(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldDeviceID), v))
+	})
+}
+
+// DeviceIDNEQ applies the NEQ predicate on the "device_id" field.
+func DeviceIDNEQ(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldDeviceID), v))
+	})
+}
+
+// DeviceIDIn applies the In predicate on the "device_id" field.
+func DeviceIDIn(vs ...string) predicate.Session {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.In(s.C(FieldDeviceID), v...))
+	})
+}
+
+// DeviceIDNotIn applies the NotIn predicate on the "device_id" field.
+func DeviceIDNotIn(vs ...string) predicate.Session {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.NotIn(s.C(FieldDeviceID), v...))
+	})
+}
+
+// DeviceIDGT applies the GT predicate on the "device_id" field.
+func DeviceIDGT(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldDeviceID), v))
+	})
+}
+
+// DeviceIDGTE applies the GTE predicate on the "device_id" field.
+func DeviceIDGTE(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldDeviceID), v))
+	})
+}
+
+// DeviceIDLT applies the LT predicate on the "device_id" field.
+func DeviceIDLT(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldDeviceID), v))
+	})
+}
+
+// DeviceIDLTE applies the LTE predicate on the "device_id" field.
+func DeviceIDLTE(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldDeviceID), v))
+	})
+}
+
+// DeviceIDContains applies the Contains predicate on the "device_id" field.
+func DeviceIDContains(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldDeviceID), v))
+	})
+}
+
+// DeviceIDHasPrefix applies the HasPrefix predicate on the "device_id" field.
+func DeviceIDHasPrefix(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldDeviceID), v))
+	})
+}
+
+// DeviceIDHasSuffix applies the HasSuffix predicate on the "device_id" field.
+func DeviceIDHasSuffix(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldDeviceID), v))
+	})
+}
+
+// DeviceIDIsNil applies the IsNil predicate on the "device_id" field.
+func DeviceIDIsNil() predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldDeviceID)))
+	})
+}
+
+// DeviceIDNotNil applies the NotNil predicate on the "device_id" field.
+func DeviceIDNotNil() predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldDeviceID)))
+	})
+}
+
+// DeviceIDEqualFold applies the EqualFold predicate on the "device_id" field.
+func DeviceIDEqualFold(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldDeviceID), v))
+	})
+}
+
+// DeviceIDContainsFold applies the ContainsFold predicate on the "device_id" field.
+func DeviceIDContainsFold(v string) predicate.Session {
+	return predicate.Session(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldDeviceID), v))
 	})
 }
 

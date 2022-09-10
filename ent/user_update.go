@@ -80,6 +80,26 @@ func (uu *UserUpdate) ClearPhone() *UserUpdate {
 	return uu
 }
 
+// SetTelegramChatID sets the "telegram_chat_id" field.
+func (uu *UserUpdate) SetTelegramChatID(s string) *UserUpdate {
+	uu.mutation.SetTelegramChatID(s)
+	return uu
+}
+
+// SetNillableTelegramChatID sets the "telegram_chat_id" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableTelegramChatID(s *string) *UserUpdate {
+	if s != nil {
+		uu.SetTelegramChatID(*s)
+	}
+	return uu
+}
+
+// ClearTelegramChatID clears the value of the "telegram_chat_id" field.
+func (uu *UserUpdate) ClearTelegramChatID() *UserUpdate {
+	uu.mutation.ClearTelegramChatID()
+	return uu
+}
+
 // SetPasswordHash sets the "password_hash" field.
 func (uu *UserUpdate) SetPasswordHash(s string) *UserUpdate {
 	uu.mutation.SetPasswordHash(s)
@@ -272,6 +292,19 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: user.FieldPhone,
 		})
 	}
+	if value, ok := uu.mutation.TelegramChatID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldTelegramChatID,
+		})
+	}
+	if uu.mutation.TelegramChatIDCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: user.FieldTelegramChatID,
+		})
+	}
 	if value, ok := uu.mutation.PasswordHash(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
@@ -386,6 +419,26 @@ func (uuo *UserUpdateOne) SetNillablePhone(s *string) *UserUpdateOne {
 // ClearPhone clears the value of the "phone" field.
 func (uuo *UserUpdateOne) ClearPhone() *UserUpdateOne {
 	uuo.mutation.ClearPhone()
+	return uuo
+}
+
+// SetTelegramChatID sets the "telegram_chat_id" field.
+func (uuo *UserUpdateOne) SetTelegramChatID(s string) *UserUpdateOne {
+	uuo.mutation.SetTelegramChatID(s)
+	return uuo
+}
+
+// SetNillableTelegramChatID sets the "telegram_chat_id" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableTelegramChatID(s *string) *UserUpdateOne {
+	if s != nil {
+		uuo.SetTelegramChatID(*s)
+	}
+	return uuo
+}
+
+// ClearTelegramChatID clears the value of the "telegram_chat_id" field.
+func (uuo *UserUpdateOne) ClearTelegramChatID() *UserUpdateOne {
+	uuo.mutation.ClearTelegramChatID()
 	return uuo
 }
 
@@ -609,6 +662,19 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
 			Column: user.FieldPhone,
+		})
+	}
+	if value, ok := uuo.mutation.TelegramChatID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: user.FieldTelegramChatID,
+		})
+	}
+	if uuo.mutation.TelegramChatIDCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: user.FieldTelegramChatID,
 		})
 	}
 	if value, ok := uuo.mutation.PasswordHash(); ok {

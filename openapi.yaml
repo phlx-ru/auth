@@ -3,32 +3,14 @@
 
 openapi: 3.0.3
 info:
-    title: ""
-    version: 0.0.1
+    title: Auth API
+    version: 1.1.1
 paths:
-    /helloworld/{name}:
-        get:
-            tags:
-                - Greeter
-            description: Sends a greeting
-            operationId: Greeter_SayHello
-            parameters:
-                - name: name
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/helloworld.v1.HelloReply'
     /v1/auth/change_password:
         post:
             tags:
                 - Auth
+            description: Set new password by username and old password
             operationId: Auth_ChangePassword
             requestBody:
                 content:
@@ -43,11 +25,31 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/auth.v1.AuthNothing'
+    /v1/auth/check:
+        post:
+            tags:
+                - Auth
+            description: Check user and session info by token
+            operationId: Auth_Check
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.CheckRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.CheckResponse'
     /v1/auth/generate_code:
         post:
             tags:
                 - Auth
-            operationId: Auth_GetCode
+            description: Generate one-time code for LoginByCode() and sends it to user
+            operationId: Auth_GenerateCode
             requestBody:
                 content:
                     application/json:
@@ -60,7 +62,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/auth.v1.GenerateCodeResponse'
+                                $ref: '#/components/schemas/auth.v1.AuthNothing'
     /v1/auth/history:
         post:
             tags:
@@ -83,6 +85,7 @@ paths:
         post:
             tags:
                 - Auth
+            description: Login user by username and password, returns JWT token
             operationId: Auth_Login
             requestBody:
                 content:
@@ -101,6 +104,7 @@ paths:
         post:
             tags:
                 - Auth
+            description: Login user by username and one-time code (generated with GenerateCode()), returns JWT token
             operationId: Auth_LoginByCode
             requestBody:
                 content:
@@ -119,6 +123,7 @@ paths:
         post:
             tags:
                 - Auth
+            description: Set new password by resetPasswordUID, which generated and sent to user with ResetPassword()
             operationId: Auth_NewPassword
             requestBody:
                 content:
@@ -137,6 +142,7 @@ paths:
         post:
             tags:
                 - Auth
+            description: Generate ResetPasswordUID and sends it to user
             operationId: Auth_ResetPassword
             requestBody:
                 content:
@@ -151,6 +157,63 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/auth.v1.AuthNothing'
+    /v1/check:
+        post:
+            tags:
+                - Notification
+            description: Check notification status by id
+            operationId: Notification_Check
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/notification.v1.CheckRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/notification.v1.CheckResponse'
+    /v1/enqueue:
+        post:
+            tags:
+                - Notification
+            description: Enqueues notification to internal queue with maximum latency 1000ms
+            operationId: Notification_Enqueue
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/notification.v1.SendRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/notification.v1.EnqueueResponse'
+    /v1/send:
+        post:
+            tags:
+                - Notification
+            description: Immediately send notification to recipient — waiting for response may be long
+            operationId: Notification_Send
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/notification.v1.SendRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/notification.v1.SendResponse'
     /v1/users/activate:
         post:
             tags:
@@ -169,6 +232,24 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/auth.v1.UserNothing'
+    /v1/users/add:
+        post:
+            tags:
+                - User
+            operationId: User_Add
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/auth.v1.AddRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.AddResponse'
     /v1/users/deactivate:
         post:
             tags:
@@ -205,24 +286,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/auth.v1.UserNothing'
-    /v1/users/login:
-        post:
-            tags:
-                - User
-            operationId: User_Add
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/auth.v1.AddRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/auth.v1.AddResponse'
 components:
     schemas:
         auth.v1.ActivateRequest:
@@ -233,8 +296,6 @@ components:
         auth.v1.AddRequest:
             type: object
             properties:
-                username:
-                    type: string
                 displayName:
                     type: string
                 type:
@@ -255,15 +316,68 @@ components:
         auth.v1.AuthNothing:
             type: object
             properties: {}
+            description: Empty response for success signal without data
         auth.v1.ChangePasswordRequest:
             type: object
             properties:
                 username:
                     type: string
+                    description: Users phone (like 9003002020) or email (like user@name.mail)
                 oldPassword:
                     type: string
+                    description: Old users password
                 newPassword:
                     type: string
+                    description: New users password
+                stats:
+                    $ref: '#/components/schemas/auth.v1.Stats'
+        auth.v1.CheckRequest:
+            required:
+                - token
+            type: object
+            properties:
+                token:
+                    type: string
+                    description: User auth JWT token
+            description: Request for check auth
+        auth.v1.CheckResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/auth.v1.CheckResponse_User'
+                session:
+                    $ref: '#/components/schemas/auth.v1.CheckResponse_Session'
+        auth.v1.CheckResponse_Session:
+            type: object
+            properties:
+                until:
+                    type: string
+                    description: Time until which session and token is active
+                    format: date-time
+                ip:
+                    type: string
+                    description: Users IP to which session is bound
+                userAgent:
+                    type: string
+                    description: Users User-Agent header to which session is bound
+                deviceId:
+                    type: string
+                    description: Users DeviceId to which session is bound if login was by mobile device
+        auth.v1.CheckResponse_User:
+            type: object
+            properties:
+                type:
+                    type: string
+                    description: User category type
+                displayName:
+                    type: string
+                    description: User display name
+                email:
+                    type: string
+                    description: User email
+                phone:
+                    type: string
+                    description: User phone
         auth.v1.DeactivateRequest:
             type: object
             properties:
@@ -272,8 +386,6 @@ components:
         auth.v1.EditRequest:
             type: object
             properties:
-                username:
-                    type: string
                 displayName:
                     type: string
                 type:
@@ -289,11 +401,9 @@ components:
             properties:
                 username:
                     type: string
-        auth.v1.GenerateCodeResponse:
-            type: object
-            properties:
-                code:
-                    type: string
+                    description: Users phone (like 9003002020) or email (like user@name.mail)
+                stats:
+                    $ref: '#/components/schemas/auth.v1.Stats'
         auth.v1.HistoryItem:
             type: object
             properties:
@@ -303,6 +413,8 @@ components:
                 when:
                     type: string
                     format: date-time
+                event:
+                    type: string
                 ip:
                     type: string
                 userAgent:
@@ -310,7 +422,13 @@ components:
         auth.v1.HistoryRequest:
             type: object
             properties:
+                userId:
+                    type: integer
+                    format: int64
                 limit:
+                    type: integer
+                    format: int64
+                offset:
                     type: integer
                     format: int64
         auth.v1.HistoryResponse:
@@ -325,52 +443,142 @@ components:
             properties:
                 username:
                     type: string
+                    description: Users phone (like 9003002020) or email (like user@name.mail)
                 code:
                     type: string
+                    description: Generated one-time code for login
                 remember:
                     type: boolean
+                    description: Remember session — if true then session interval is 7 days, else 1 day
+                stats:
+                    $ref: '#/components/schemas/auth.v1.Stats'
         auth.v1.LoginRequest:
             type: object
             properties:
                 username:
                     type: string
+                    description: Users phone (like 9003002020) or email (like user@name.mail)
                 password:
                     type: string
+                    description: Users password
                 remember:
                     type: boolean
+                    description: Remember session — if true then session interval is 7 days, else 1 day
+                stats:
+                    $ref: '#/components/schemas/auth.v1.Stats'
         auth.v1.LoginResponse:
             type: object
             properties:
                 token:
                     type: string
+                    description: Bearer API JWT token
                 until:
                     type: string
+                    description: Time until which session and token is active
                     format: date-time
         auth.v1.NewPasswordRequest:
             type: object
             properties:
                 username:
                     type: string
-                passwordResetUid:
+                    description: Users phone (like 9003002020) or email (like user@name.mail)
+                passwordResetHash:
                     type: string
+                    description: Unique identifier for password reset (previously sent with ResetPassword())
                 password:
                     type: string
+                    description: New users password
+                stats:
+                    $ref: '#/components/schemas/auth.v1.Stats'
         auth.v1.ResetPasswordRequest:
             type: object
             properties:
                 username:
                     type: string
+                    description: Users phone (like 9003002020) or email (like user@name.mail)
+                stats:
+                    $ref: '#/components/schemas/auth.v1.Stats'
+        auth.v1.Stats:
+            type: object
+            properties:
+                ip:
+                    type: string
+                    description: Users IP extracted from request
+                userAgent:
+                    type: string
+                    description: Users User-Agent extracted from request
+                deviceId:
+                    type: string
+                    description: Users DeviceId extracted from request if login was by mobile device
         auth.v1.UserNothing:
             type: object
             properties: {}
-        helloworld.v1.HelloReply:
+        notification.v1.CheckRequest:
             type: object
             properties:
-                message:
+                id:
+                    type: integer
+                    description: Notification identifier
+                    format: int64
+            description: Request for check status
+        notification.v1.CheckResponse:
+            type: object
+            properties:
+                status:
+                    type: integer
+                    description: Notification status number
+                    format: enum
+            description: Response for check status
+        notification.v1.EnqueueResponse:
+            type: object
+            properties:
+                id:
+                    type: integer
+                    description: Notification identifier
+                    format: int64
+            description: Response by enqueuing message
+        notification.v1.SendRequest:
+            required:
+                - type
+                - payload
+            type: object
+            properties:
+                type:
+                    type: integer
+                    description: Type of notification channel
+                    format: enum
+                payload:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: Notification message payload
+                plannedAt:
                     type: string
-            description: The response message containing the greetings
+                    description: Planned time to send message (works with enqueue)
+                    format: date-time
+                ttl:
+                    type: integer
+                    description: Time to Live for notification in seconds
+                    format: uint64
+                senderId:
+                    type: integer
+                    description: Sender identifier (user id from auth service)
+                    format: int64
+            description: Basic notification request
+        notification.v1.SendResponse:
+            type: object
+            properties:
+                id:
+                    type: integer
+                    description: Notification identifier
+                    format: int64
+                sent:
+                    type: boolean
+                    description: Is notification was sent? May be false if it will enqueued
+            description: Response by sending message
 tags:
     - name: Auth
-    - name: Greeter
-      description: The greeting service definition.
+      description: This API provides methods for users authentication (returns JWT, without cookies)
+    - name: Notification
+      description: This API provides simple interface for send custom notifications in various channel with obvious behaviour.
     - name: User

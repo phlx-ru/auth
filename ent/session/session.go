@@ -15,6 +15,12 @@ const (
 	FieldUserID = "user_id"
 	// FieldToken holds the string denoting the token field in the database.
 	FieldToken = "token"
+	// FieldIP holds the string denoting the ip field in the database.
+	FieldIP = "ip"
+	// FieldUserAgent holds the string denoting the user_agent field in the database.
+	FieldUserAgent = "user_agent"
+	// FieldDeviceID holds the string denoting the device_id field in the database.
+	FieldDeviceID = "device_id"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -32,6 +38,9 @@ var Columns = []string{
 	FieldID,
 	FieldUserID,
 	FieldToken,
+	FieldIP,
+	FieldUserAgent,
+	FieldDeviceID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldExpiredAt,

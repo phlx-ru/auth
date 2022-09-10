@@ -47,6 +47,38 @@ func (su *SessionUpdate) SetToken(s string) *SessionUpdate {
 	return su
 }
 
+// SetIP sets the "ip" field.
+func (su *SessionUpdate) SetIP(s string) *SessionUpdate {
+	su.mutation.SetIP(s)
+	return su
+}
+
+// SetUserAgent sets the "user_agent" field.
+func (su *SessionUpdate) SetUserAgent(s string) *SessionUpdate {
+	su.mutation.SetUserAgent(s)
+	return su
+}
+
+// SetDeviceID sets the "device_id" field.
+func (su *SessionUpdate) SetDeviceID(s string) *SessionUpdate {
+	su.mutation.SetDeviceID(s)
+	return su
+}
+
+// SetNillableDeviceID sets the "device_id" field if the given value is not nil.
+func (su *SessionUpdate) SetNillableDeviceID(s *string) *SessionUpdate {
+	if s != nil {
+		su.SetDeviceID(*s)
+	}
+	return su
+}
+
+// ClearDeviceID clears the value of the "device_id" field.
+func (su *SessionUpdate) ClearDeviceID() *SessionUpdate {
+	su.mutation.ClearDeviceID()
+	return su
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (su *SessionUpdate) SetUpdatedAt(t time.Time) *SessionUpdate {
 	su.mutation.SetUpdatedAt(t)
@@ -188,6 +220,33 @@ func (su *SessionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: session.FieldToken,
 		})
 	}
+	if value, ok := su.mutation.IP(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldIP,
+		})
+	}
+	if value, ok := su.mutation.UserAgent(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldUserAgent,
+		})
+	}
+	if value, ok := su.mutation.DeviceID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldDeviceID,
+		})
+	}
+	if su.mutation.DeviceIDCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: session.FieldDeviceID,
+		})
+	}
 	if value, ok := su.mutation.UpdatedAt(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeTime,
@@ -244,6 +303,38 @@ func (suo *SessionUpdateOne) AddUserID(i int) *SessionUpdateOne {
 // SetToken sets the "token" field.
 func (suo *SessionUpdateOne) SetToken(s string) *SessionUpdateOne {
 	suo.mutation.SetToken(s)
+	return suo
+}
+
+// SetIP sets the "ip" field.
+func (suo *SessionUpdateOne) SetIP(s string) *SessionUpdateOne {
+	suo.mutation.SetIP(s)
+	return suo
+}
+
+// SetUserAgent sets the "user_agent" field.
+func (suo *SessionUpdateOne) SetUserAgent(s string) *SessionUpdateOne {
+	suo.mutation.SetUserAgent(s)
+	return suo
+}
+
+// SetDeviceID sets the "device_id" field.
+func (suo *SessionUpdateOne) SetDeviceID(s string) *SessionUpdateOne {
+	suo.mutation.SetDeviceID(s)
+	return suo
+}
+
+// SetNillableDeviceID sets the "device_id" field if the given value is not nil.
+func (suo *SessionUpdateOne) SetNillableDeviceID(s *string) *SessionUpdateOne {
+	if s != nil {
+		suo.SetDeviceID(*s)
+	}
+	return suo
+}
+
+// ClearDeviceID clears the value of the "device_id" field.
+func (suo *SessionUpdateOne) ClearDeviceID() *SessionUpdateOne {
+	suo.mutation.ClearDeviceID()
 	return suo
 }
 
@@ -416,6 +507,33 @@ func (suo *SessionUpdateOne) sqlSave(ctx context.Context) (_node *Session, err e
 			Type:   field.TypeString,
 			Value:  value,
 			Column: session.FieldToken,
+		})
+	}
+	if value, ok := suo.mutation.IP(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldIP,
+		})
+	}
+	if value, ok := suo.mutation.UserAgent(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldUserAgent,
+		})
+	}
+	if value, ok := suo.mutation.DeviceID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldDeviceID,
+		})
+	}
+	if suo.mutation.DeviceIDCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: session.FieldDeviceID,
 		})
 	}
 	if value, ok := suo.mutation.UpdatedAt(); ok {

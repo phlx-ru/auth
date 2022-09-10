@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 )
 
 // Session holds the schema definition for the Session entity.
@@ -22,6 +23,17 @@ func (Session) Fields() []ent.Field {
 		field.String(`token`).
 			Sensitive().
 			Comment(`user auth token`),
+
+		field.String(`ip`).
+			Comment(`authorized user IP-address`),
+
+		field.String(`user_agent`).
+			Comment(`User-Agent header from users request`),
+
+		field.String(`device_id`).
+			Optional().
+			Nillable().
+			Comment(`users deviceId in case of authorization from mobile device`),
 
 		field.Time(`created_at`).
 			Default(time.Now).
@@ -51,4 +63,12 @@ func (Session) Fields() []ent.Field {
 // Edges of the Session.
 func (Session) Edges() []ent.Edge {
 	return nil
+}
+
+func (Session) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields(`user_id`),
+		index.Fields(`token`),
+		index.Fields(`expired_at`),
+	}
 }

@@ -8,6 +8,7 @@ package main
 import (
 	"context"
 
+	"auth/internal/clients"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
@@ -26,7 +27,15 @@ func wireData(*conf.Data, log.Logger) (data.Database, func(), error) {
 }
 
 // wireApp init kratos application.
-func wireApp(context.Context, data.Database, *conf.Server, metrics.Metrics, log.Logger) (
+func wireApp(
+	context.Context,
+	data.Database,
+	*conf.Auth,
+	*conf.Server,
+	clients.Notifications,
+	metrics.Metrics,
+	log.Logger,
+) (
 	*kratos.App,
 	error,
 ) {

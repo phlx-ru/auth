@@ -22,12 +22,20 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthClient interface {
+	// Check user and session info by token
+	Check(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*CheckResponse, error)
+	// Login user by username and password, returns JWT token
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	// Login user by username and one-time code (generated with GenerateCode()), returns JWT token
 	LoginByCode(ctx context.Context, in *LoginByCodeRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	// Generate ResetPasswordUID and sends it to user
 	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*AuthNothing, error)
+	// Set new password by resetPasswordUID, which generated and sent to user with ResetPassword()
 	NewPassword(ctx context.Context, in *NewPasswordRequest, opts ...grpc.CallOption) (*AuthNothing, error)
+	// Set new password by username and old password
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*AuthNothing, error)
-	GetCode(ctx context.Context, in *GenerateCodeRequest, opts ...grpc.CallOption) (*GenerateCodeResponse, error)
+	// Generate one-time code for LoginByCode() and sends it to user
+	GenerateCode(ctx context.Context, in *GenerateCodeRequest, opts ...grpc.CallOption) (*AuthNothing, error)
 	History(ctx context.Context, in *HistoryRequest, opts ...grpc.CallOption) (*HistoryResponse, error)
 }
 
@@ -37,6 +45,15 @@ type authClient struct {
 
 func NewAuthClient(cc grpc.ClientConnInterface) AuthClient {
 	return &authClient{cc}
+}
+
+func (c *authClient) Check(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*CheckResponse, error) {
+	out := new(CheckResponse)
+	err := c.cc.Invoke(ctx, "/auth.v1.Auth/Check", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *authClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
@@ -84,9 +101,9 @@ func (c *authClient) ChangePassword(ctx context.Context, in *ChangePasswordReque
 	return out, nil
 }
 
-func (c *authClient) GetCode(ctx context.Context, in *GenerateCodeRequest, opts ...grpc.CallOption) (*GenerateCodeResponse, error) {
-	out := new(GenerateCodeResponse)
-	err := c.cc.Invoke(ctx, "/auth.v1.Auth/GetCode", in, out, opts...)
+func (c *authClient) GenerateCode(ctx context.Context, in *GenerateCodeRequest, opts ...grpc.CallOption) (*AuthNothing, error) {
+	out := new(AuthNothing)
+	err := c.cc.Invoke(ctx, "/auth.v1.Auth/GenerateCode", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -106,12 +123,20 @@ func (c *authClient) History(ctx context.Context, in *HistoryRequest, opts ...gr
 // All implementations must embed UnimplementedAuthServer
 // for forward compatibility
 type AuthServer interface {
+	// Check user and session info by token
+	Check(context.Context, *CheckRequest) (*CheckResponse, error)
+	// Login user by username and password, returns JWT token
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
+	// Login user by username and one-time code (generated with GenerateCode()), returns JWT token
 	LoginByCode(context.Context, *LoginByCodeRequest) (*LoginResponse, error)
+	// Generate ResetPasswordUID and sends it to user
 	ResetPassword(context.Context, *ResetPasswordRequest) (*AuthNothing, error)
+	// Set new password by resetPasswordUID, which generated and sent to user with ResetPassword()
 	NewPassword(context.Context, *NewPasswordRequest) (*AuthNothing, error)
+	// Set new password by username and old password
 	ChangePassword(context.Context, *ChangePasswordRequest) (*AuthNothing, error)
-	GetCode(context.Context, *GenerateCodeRequest) (*GenerateCodeResponse, error)
+	// Generate one-time code for LoginByCode() and sends it to user
+	GenerateCode(context.Context, *GenerateCodeRequest) (*AuthNothing, error)
 	History(context.Context, *HistoryRequest) (*HistoryResponse, error)
 	mustEmbedUnimplementedAuthServer()
 }
@@ -120,6 +145,9 @@ type AuthServer interface {
 type UnimplementedAuthServer struct {
 }
 
+func (UnimplementedAuthServer) Check(context.Context, *CheckRequest) (*CheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
+}
 func (UnimplementedAuthServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
@@ -135,8 +163,8 @@ func (UnimplementedAuthServer) NewPassword(context.Context, *NewPasswordRequest)
 func (UnimplementedAuthServer) ChangePassword(context.Context, *ChangePasswordRequest) (*AuthNothing, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
 }
-func (UnimplementedAuthServer) GetCode(context.Context, *GenerateCodeRequest) (*GenerateCodeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCode not implemented")
+func (UnimplementedAuthServer) GenerateCode(context.Context, *GenerateCodeRequest) (*AuthNothing, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateCode not implemented")
 }
 func (UnimplementedAuthServer) History(context.Context, *HistoryRequest) (*HistoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method History not implemented")
@@ -152,6 +180,24 @@ type UnsafeAuthServer interface {
 
 func RegisterAuthServer(s grpc.ServiceRegistrar, srv AuthServer) {
 	s.RegisterService(&Auth_ServiceDesc, srv)
+}
+
+func _Auth_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).Check(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/auth.v1.Auth/Check",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).Check(ctx, req.(*CheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Auth_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -244,20 +290,20 @@ func _Auth_ChangePassword_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Auth_GetCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Auth_GenerateCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GenerateCodeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServer).GetCode(ctx, in)
+		return srv.(AuthServer).GenerateCode(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/auth.v1.Auth/GetCode",
+		FullMethod: "/auth.v1.Auth/GenerateCode",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServer).GetCode(ctx, req.(*GenerateCodeRequest))
+		return srv.(AuthServer).GenerateCode(ctx, req.(*GenerateCodeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -288,6 +334,10 @@ var Auth_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*AuthServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Check",
+			Handler:    _Auth_Check_Handler,
+		},
+		{
 			MethodName: "Login",
 			Handler:    _Auth_Login_Handler,
 		},
@@ -308,8 +358,8 @@ var Auth_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Auth_ChangePassword_Handler,
 		},
 		{
-			MethodName: "GetCode",
-			Handler:    _Auth_GetCode_Handler,
+			MethodName: "GenerateCode",
+			Handler:    _Auth_GenerateCode_Handler,
 		},
 		{
 			MethodName: "History",

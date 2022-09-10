@@ -20,6 +20,12 @@ type Session struct {
 	UserID int `json:"user_id,omitempty"`
 	// user auth token
 	Token string `json:"-"`
+	// authorized user IP-address
+	IP string `json:"ip,omitempty"`
+	// User-Agent header from users request
+	UserAgent string `json:"user_agent,omitempty"`
+	// users deviceId in case of authorization from mobile device
+	DeviceID *string `json:"device_id,omitempty"`
 	// creation time of session
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// last update time of session
@@ -39,7 +45,7 @@ func (*Session) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullBool)
 		case session.FieldID, session.FieldUserID:
 			values[i] = new(sql.NullInt64)
-		case session.FieldToken:
+		case session.FieldToken, session.FieldIP, session.FieldUserAgent, session.FieldDeviceID:
 			values[i] = new(sql.NullString)
 		case session.FieldCreatedAt, session.FieldUpdatedAt, session.FieldExpiredAt:
 			values[i] = new(sql.NullTime)
@@ -75,6 +81,25 @@ func (s *Session) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field token", values[i])
 			} else if value.Valid {
 				s.Token = value.String
+			}
+		case session.FieldIP:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ip", values[i])
+			} else if value.Valid {
+				s.IP = value.String
+			}
+		case session.FieldUserAgent:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field user_agent", values[i])
+			} else if value.Valid {
+				s.UserAgent = value.String
+			}
+		case session.FieldDeviceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field device_id", values[i])
+			} else if value.Valid {
+				s.DeviceID = new(string)
+				*s.DeviceID = value.String
 			}
 		case session.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -132,6 +157,17 @@ func (s *Session) String() string {
 	builder.WriteString(fmt.Sprintf("%v", s.UserID))
 	builder.WriteString(", ")
 	builder.WriteString("token=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("ip=")
+	builder.WriteString(s.IP)
+	builder.WriteString(", ")
+	builder.WriteString("user_agent=")
+	builder.WriteString(s.UserAgent)
+	builder.WriteString(", ")
+	if v := s.DeviceID; v != nil {
+		builder.WriteString("device_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(s.CreatedAt.Format(time.ANSIC))

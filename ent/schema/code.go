@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 )
 
 // Code holds the schema definition for the Code entity.
@@ -41,14 +42,17 @@ func (Code) Fields() []ent.Field {
 		field.Time(`expired_at`).
 			Default(time.Now).
 			Comment(`time of code expiration`),
-
-		field.Int(`retries`).
-			Default(0).
-			Comment(`count of failed retries to input code`),
 	}
 }
 
 // Edges of the Code.
 func (Code) Edges() []ent.Edge {
 	return nil
+}
+
+func (Code) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields(`user_id`),
+		index.Fields(`expired_at`),
+	}
 }

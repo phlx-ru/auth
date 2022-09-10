@@ -33,7 +33,7 @@ type UserHTTPServer interface {
 
 func RegisterUserHTTPServer(s *http.Server, srv UserHTTPServer) {
 	r := s.Route("/")
-	r.POST("/v1/users/login", _User_Add0_HTTP_Handler(srv))
+	r.POST("/v1/users/add", _User_Add0_HTTP_Handler(srv))
 	r.POST("/v1/users/edit", _User_Edit0_HTTP_Handler(srv))
 	r.POST("/v1/users/activate", _User_Activate0_HTTP_Handler(srv))
 	r.POST("/v1/users/deactivate", _User_Deactivate0_HTTP_Handler(srv))
@@ -145,7 +145,7 @@ func (c *UserHTTPClientImpl) Activate(ctx context.Context, in *ActivateRequest, 
 
 func (c *UserHTTPClientImpl) Add(ctx context.Context, in *AddRequest, opts ...http.CallOption) (*AddResponse, error) {
 	var out AddResponse
-	pattern := "/v1/users/login"
+	pattern := "/v1/users/add"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationUserAdd))
 	opts = append(opts, http.PathTemplate(pattern))

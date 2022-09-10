@@ -1,8 +1,8 @@
 version: "3.9"
 
 services:
-  auth_server:
-    image: ${REGISTRY_HOST}/auth_server:latest
+  auth-server:
+    image: ${REGISTRY_HOST}/auth-server:latest
     volumes:
     - ./configs:/data/conf
     logging:

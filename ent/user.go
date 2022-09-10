@@ -24,6 +24,8 @@ type User struct {
 	Email *string `json:"email,omitempty"`
 	// users phone
 	Phone *string `json:"phone,omitempty"`
+	// chat_id for telegram
+	TelegramChatID *string `json:"telegram_chat_id,omitempty"`
 	// hashed string with password
 	PasswordHash *string `json:"-"`
 	// reset string for change password
@@ -43,7 +45,7 @@ func (*User) scanValues(columns []string) ([]interface{}, error) {
 		switch columns[i] {
 		case user.FieldID:
 			values[i] = new(sql.NullInt64)
-		case user.FieldDisplayName, user.FieldType, user.FieldEmail, user.FieldPhone, user.FieldPasswordHash, user.FieldPasswordReset:
+		case user.FieldDisplayName, user.FieldType, user.FieldEmail, user.FieldPhone, user.FieldTelegramChatID, user.FieldPasswordHash, user.FieldPasswordReset:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldDeactivatedAt:
 			values[i] = new(sql.NullTime)
@@ -93,6 +95,13 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 			} else if value.Valid {
 				u.Phone = new(string)
 				*u.Phone = value.String
+			}
+		case user.FieldTelegramChatID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field telegram_chat_id", values[i])
+			} else if value.Valid {
+				u.TelegramChatID = new(string)
+				*u.TelegramChatID = value.String
 			}
 		case user.FieldPasswordHash:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -168,6 +177,11 @@ func (u *User) String() string {
 	builder.WriteString(", ")
 	if v := u.Phone; v != nil {
 		builder.WriteString("phone=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := u.TelegramChatID; v != nil {
+		builder.WriteString("telegram_chat_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

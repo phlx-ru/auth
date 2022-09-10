@@ -6,7 +6,9 @@ import (
 	"os"
 	"path"
 
+	"auth/internal/clients"
 	"auth/internal/conf"
+	pkgConfig "auth/internal/pkg/config"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
 	"auth/internal/pkg/runtime"
@@ -35,7 +37,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
+	flag.StringVar(&flagconf, "conf", "./configs", "config path, eg: -conf config.yaml")
 	flag.StringVar(&dotenv, "dotenv", ".env", ".env file, eg: -dotenv .env")
 }
 
@@ -77,7 +79,7 @@ func run() error {
 		config.WithSource(
 			file.NewSource(flagconf),
 		),
-		config.WithDecoder(conf.EnvDecoder),
+		config.WithDecoder(pkgConfig.EnvReplaceDecoder),
 	)
 	defer func() {
 		_ = c.Close()
@@ -115,7 +117,10 @@ func run() error {
 		return err
 	}
 
-	app, err := wireApp(ctx, database, bc.Server, metric, logs)
+	n := bc.Client.Grpc.Notifications
+	notificationsClient, err := clients.NewNotifications(ctx, n.Endpoint, n.Timeout.AsDuration(), metric, logs)
+
+	app, err := wireApp(ctx, database, bc.Auth, bc.Server, notificationsClient, metric, logs)
 	if err != nil {
 		panic(err)
 	}

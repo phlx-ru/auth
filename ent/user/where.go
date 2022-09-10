@@ -108,6 +108,13 @@ func Phone(v string) predicate.User {
 	})
 }
 
+// TelegramChatID applies equality check predicate on the "telegram_chat_id" field. It's identical to TelegramChatIDEQ.
+func TelegramChatID(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldTelegramChatID), v))
+	})
+}
+
 // PasswordHash applies equality check predicate on the "password_hash" field. It's identical to PasswordHashEQ.
 func PasswordHash(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -564,6 +571,119 @@ func PhoneEqualFold(v string) predicate.User {
 func PhoneContainsFold(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldPhone), v))
+	})
+}
+
+// TelegramChatIDEQ applies the EQ predicate on the "telegram_chat_id" field.
+func TelegramChatIDEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldTelegramChatID), v))
+	})
+}
+
+// TelegramChatIDNEQ applies the NEQ predicate on the "telegram_chat_id" field.
+func TelegramChatIDNEQ(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldTelegramChatID), v))
+	})
+}
+
+// TelegramChatIDIn applies the In predicate on the "telegram_chat_id" field.
+func TelegramChatIDIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.In(s.C(FieldTelegramChatID), v...))
+	})
+}
+
+// TelegramChatIDNotIn applies the NotIn predicate on the "telegram_chat_id" field.
+func TelegramChatIDNotIn(vs ...string) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotIn(s.C(FieldTelegramChatID), v...))
+	})
+}
+
+// TelegramChatIDGT applies the GT predicate on the "telegram_chat_id" field.
+func TelegramChatIDGT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldTelegramChatID), v))
+	})
+}
+
+// TelegramChatIDGTE applies the GTE predicate on the "telegram_chat_id" field.
+func TelegramChatIDGTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldTelegramChatID), v))
+	})
+}
+
+// TelegramChatIDLT applies the LT predicate on the "telegram_chat_id" field.
+func TelegramChatIDLT(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldTelegramChatID), v))
+	})
+}
+
+// TelegramChatIDLTE applies the LTE predicate on the "telegram_chat_id" field.
+func TelegramChatIDLTE(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldTelegramChatID), v))
+	})
+}
+
+// TelegramChatIDContains applies the Contains predicate on the "telegram_chat_id" field.
+func TelegramChatIDContains(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldTelegramChatID), v))
+	})
+}
+
+// TelegramChatIDHasPrefix applies the HasPrefix predicate on the "telegram_chat_id" field.
+func TelegramChatIDHasPrefix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldTelegramChatID), v))
+	})
+}
+
+// TelegramChatIDHasSuffix applies the HasSuffix predicate on the "telegram_chat_id" field.
+func TelegramChatIDHasSuffix(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldTelegramChatID), v))
+	})
+}
+
+// TelegramChatIDIsNil applies the IsNil predicate on the "telegram_chat_id" field.
+func TelegramChatIDIsNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldTelegramChatID)))
+	})
+}
+
+// TelegramChatIDNotNil applies the NotNil predicate on the "telegram_chat_id" field.
+func TelegramChatIDNotNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldTelegramChatID)))
+	})
+}
+
+// TelegramChatIDEqualFold applies the EqualFold predicate on the "telegram_chat_id" field.
+func TelegramChatIDEqualFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldTelegramChatID), v))
+	})
+}
+
+// TelegramChatIDContainsFold applies the ContainsFold predicate on the "telegram_chat_id" field.
+func TelegramChatIDContainsFold(v string) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldTelegramChatID), v))
 	})
 }
 

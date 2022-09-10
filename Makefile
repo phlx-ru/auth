@@ -1,6 +1,8 @@
-GOHOSTOS:=$(shell go env GOHOSTOS)
-GOPATH:=$(shell go env GOPATH)
-VERSION=$(shell git describe --tags --always)
+GOHOSTOS        := $(shell go env GOHOSTOS)
+GOPATH          := $(shell go env GOPATH)
+VERSION         := $(shell git describe --tags --always)
+OPENAPI_VERSION := 1.1.1
+OPENAPI_TITLE   := "Auth API"
 
 ifeq ($(GOHOSTOS), windows)
 	#the `find.exe` is different from `find` in bash/shell.
@@ -37,15 +39,16 @@ api:
 	protoc --proto_path=./api \
 	       --proto_path=./third_party \
  	       --go_out=paths=source_relative:./api \
+ 	       --go-errors_out=paths=source_relative:./api \
  	       --go-http_out=paths=source_relative:./api \
  	       --go-grpc_out=paths=source_relative:./api \
-	       --openapi_out=fq_schema_naming=true,default_response=false:. \
+	       --openapi_out=fq_schema_naming=true,default_response=false,version=${OPENAPI_VERSION},title=${OPENAPI_TITLE}:. \
 	       $(API_PROTO_FILES)
 
 .PHONY: build
 # build
 build:
-	mkdir -p bin/ && go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/ ./...
+	mkdir -p bin/ && CGO_ENABLED=0 go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/ ./...
 
 .PHONY: generate
 # generate

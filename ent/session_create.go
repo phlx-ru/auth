@@ -32,6 +32,32 @@ func (sc *SessionCreate) SetToken(s string) *SessionCreate {
 	return sc
 }
 
+// SetIP sets the "ip" field.
+func (sc *SessionCreate) SetIP(s string) *SessionCreate {
+	sc.mutation.SetIP(s)
+	return sc
+}
+
+// SetUserAgent sets the "user_agent" field.
+func (sc *SessionCreate) SetUserAgent(s string) *SessionCreate {
+	sc.mutation.SetUserAgent(s)
+	return sc
+}
+
+// SetDeviceID sets the "device_id" field.
+func (sc *SessionCreate) SetDeviceID(s string) *SessionCreate {
+	sc.mutation.SetDeviceID(s)
+	return sc
+}
+
+// SetNillableDeviceID sets the "device_id" field if the given value is not nil.
+func (sc *SessionCreate) SetNillableDeviceID(s *string) *SessionCreate {
+	if s != nil {
+		sc.SetDeviceID(*s)
+	}
+	return sc
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (sc *SessionCreate) SetCreatedAt(t time.Time) *SessionCreate {
 	sc.mutation.SetCreatedAt(t)
@@ -191,6 +217,12 @@ func (sc *SessionCreate) check() error {
 	if _, ok := sc.mutation.Token(); !ok {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required field "Session.token"`)}
 	}
+	if _, ok := sc.mutation.IP(); !ok {
+		return &ValidationError{Name: "ip", err: errors.New(`ent: missing required field "Session.ip"`)}
+	}
+	if _, ok := sc.mutation.UserAgent(); !ok {
+		return &ValidationError{Name: "user_agent", err: errors.New(`ent: missing required field "Session.user_agent"`)}
+	}
 	if _, ok := sc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Session.created_at"`)}
 	}
@@ -245,6 +277,30 @@ func (sc *SessionCreate) createSpec() (*Session, *sqlgraph.CreateSpec) {
 			Column: session.FieldToken,
 		})
 		_node.Token = value
+	}
+	if value, ok := sc.mutation.IP(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldIP,
+		})
+		_node.IP = value
+	}
+	if value, ok := sc.mutation.UserAgent(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldUserAgent,
+		})
+		_node.UserAgent = value
+	}
+	if value, ok := sc.mutation.DeviceID(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: session.FieldDeviceID,
+		})
+		_node.DeviceID = &value
 	}
 	if value, ok := sc.mutation.CreatedAt(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{

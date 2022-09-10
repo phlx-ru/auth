@@ -74,20 +74,6 @@ func (cc *CodeCreate) SetNillableExpiredAt(t *time.Time) *CodeCreate {
 	return cc
 }
 
-// SetRetries sets the "retries" field.
-func (cc *CodeCreate) SetRetries(i int) *CodeCreate {
-	cc.mutation.SetRetries(i)
-	return cc
-}
-
-// SetNillableRetries sets the "retries" field if the given value is not nil.
-func (cc *CodeCreate) SetNillableRetries(i *int) *CodeCreate {
-	if i != nil {
-		cc.SetRetries(*i)
-	}
-	return cc
-}
-
 // Mutation returns the CodeMutation object of the builder.
 func (cc *CodeCreate) Mutation() *CodeMutation {
 	return cc.mutation
@@ -177,10 +163,6 @@ func (cc *CodeCreate) defaults() {
 		v := code.DefaultExpiredAt()
 		cc.mutation.SetExpiredAt(v)
 	}
-	if _, ok := cc.mutation.Retries(); !ok {
-		v := code.DefaultRetries
-		cc.mutation.SetRetries(v)
-	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -199,9 +181,6 @@ func (cc *CodeCreate) check() error {
 	}
 	if _, ok := cc.mutation.ExpiredAt(); !ok {
 		return &ValidationError{Name: "expired_at", err: errors.New(`ent: missing required field "Code.expired_at"`)}
-	}
-	if _, ok := cc.mutation.Retries(); !ok {
-		return &ValidationError{Name: "retries", err: errors.New(`ent: missing required field "Code.retries"`)}
 	}
 	return nil
 }
@@ -269,14 +248,6 @@ func (cc *CodeCreate) createSpec() (*Code, *sqlgraph.CreateSpec) {
 			Column: code.FieldExpiredAt,
 		})
 		_node.ExpiredAt = value
-	}
-	if value, ok := cc.mutation.Retries(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeInt,
-			Value:  value,
-			Column: code.FieldRetries,
-		})
-		_node.Retries = value
 	}
 	return _node, _spec
 }

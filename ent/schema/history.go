@@ -5,29 +5,34 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 )
 
 const (
 	EventLoginOk              = `login.ok`
 	EventLoginFailed          = `login.failed`
-	EventRequestCode          = `login_by_code.request`
+	EventGenerateCodeRequest  = `generate_code.request`
 	EventLoginByCodeOk        = `login_by_code.ok`
 	EventLoginByCodeFailed    = `login_by_code.failed`
 	EventResetPasswordRequest = `reset_password.request`
-	EventResetPasswordOk      = `reset_password.ok`
-	EventResetPasswordFailed  = `reset_password.failed`
+	EventNewPasswordOk        = `new_password.ok`
+	EventNewPasswordFailed    = `new_password.failed`
+	EventChangePasswordOk     = `change_password.ok`
+	EventChangePasswordFailed = `change_password.failed`
 )
 
 var (
 	EventTypes = []string{
 		EventLoginOk,
 		EventLoginFailed,
-		EventRequestCode,
+		EventGenerateCodeRequest,
 		EventLoginByCodeOk,
 		EventLoginByCodeFailed,
 		EventResetPasswordRequest,
-		EventResetPasswordOk,
-		EventResetPasswordFailed,
+		EventNewPasswordOk,
+		EventNewPasswordFailed,
+		EventChangePasswordOk,
+		EventChangePasswordFailed,
 	}
 )
 
@@ -49,7 +54,7 @@ func (History) Fields() []ent.Field {
 
 		field.String(`event`).
 			Immutable().
-			Comment(`type of event `),
+			Comment(`type of event`),
 
 		field.String(`ip`).
 			Optional().
@@ -66,4 +71,12 @@ func (History) Fields() []ent.Field {
 // Edges of the History.
 func (History) Edges() []ent.Edge {
 	return nil
+}
+
+func (History) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields(`user_id`),
+		index.Fields(`event`),
+		index.Fields(`created_at`),
+	}
 }

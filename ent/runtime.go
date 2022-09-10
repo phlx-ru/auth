@@ -31,10 +31,6 @@ func init() {
 	codeDescExpiredAt := codeFields[4].Descriptor()
 	// code.DefaultExpiredAt holds the default value on creation for the expired_at field.
 	code.DefaultExpiredAt = codeDescExpiredAt.Default.(func() time.Time)
-	// codeDescRetries is the schema descriptor for retries field.
-	codeDescRetries := codeFields[5].Descriptor()
-	// code.DefaultRetries holds the default value on creation for the retries field.
-	code.DefaultRetries = codeDescRetries.Default.(int)
 	historyFields := schema.History{}.Fields()
 	_ = historyFields
 	// historyDescCreatedAt is the schema descriptor for created_at field.
@@ -44,31 +40,31 @@ func init() {
 	sessionFields := schema.Session{}.Fields()
 	_ = sessionFields
 	// sessionDescCreatedAt is the schema descriptor for created_at field.
-	sessionDescCreatedAt := sessionFields[2].Descriptor()
+	sessionDescCreatedAt := sessionFields[5].Descriptor()
 	// session.DefaultCreatedAt holds the default value on creation for the created_at field.
 	session.DefaultCreatedAt = sessionDescCreatedAt.Default.(func() time.Time)
 	// sessionDescUpdatedAt is the schema descriptor for updated_at field.
-	sessionDescUpdatedAt := sessionFields[3].Descriptor()
+	sessionDescUpdatedAt := sessionFields[6].Descriptor()
 	// session.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	session.DefaultUpdatedAt = sessionDescUpdatedAt.Default.(func() time.Time)
 	// session.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	session.UpdateDefaultUpdatedAt = sessionDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// sessionDescExpiredAt is the schema descriptor for expired_at field.
-	sessionDescExpiredAt := sessionFields[4].Descriptor()
+	sessionDescExpiredAt := sessionFields[7].Descriptor()
 	// session.DefaultExpiredAt holds the default value on creation for the expired_at field.
 	session.DefaultExpiredAt = sessionDescExpiredAt.Default.(func() time.Time)
 	// sessionDescIsActive is the schema descriptor for is_active field.
-	sessionDescIsActive := sessionFields[5].Descriptor()
+	sessionDescIsActive := sessionFields[8].Descriptor()
 	// session.DefaultIsActive holds the default value on creation for the is_active field.
 	session.DefaultIsActive = sessionDescIsActive.Default.(bool)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[6].Descriptor()
+	userDescCreatedAt := userFields[7].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
 	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
 	// userDescUpdatedAt is the schema descriptor for updated_at field.
-	userDescUpdatedAt := userFields[7].Descriptor()
+	userDescUpdatedAt := userFields[8].Descriptor()
 	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

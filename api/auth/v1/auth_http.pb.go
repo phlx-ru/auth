@@ -20,7 +20,8 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationAuthChangePassword = "/auth.v1.Auth/ChangePassword"
-const OperationAuthGetCode = "/auth.v1.Auth/GetCode"
+const OperationAuthCheck = "/auth.v1.Auth/Check"
+const OperationAuthGenerateCode = "/auth.v1.Auth/GenerateCode"
 const OperationAuthHistory = "/auth.v1.Auth/History"
 const OperationAuthLogin = "/auth.v1.Auth/Login"
 const OperationAuthLoginByCode = "/auth.v1.Auth/LoginByCode"
@@ -29,7 +30,8 @@ const OperationAuthResetPassword = "/auth.v1.Auth/ResetPassword"
 
 type AuthHTTPServer interface {
 	ChangePassword(context.Context, *ChangePasswordRequest) (*AuthNothing, error)
-	GetCode(context.Context, *GenerateCodeRequest) (*GenerateCodeResponse, error)
+	Check(context.Context, *CheckRequest) (*CheckResponse, error)
+	GenerateCode(context.Context, *GenerateCodeRequest) (*AuthNothing, error)
 	History(context.Context, *HistoryRequest) (*HistoryResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	LoginByCode(context.Context, *LoginByCodeRequest) (*LoginResponse, error)
@@ -39,13 +41,33 @@ type AuthHTTPServer interface {
 
 func RegisterAuthHTTPServer(s *http.Server, srv AuthHTTPServer) {
 	r := s.Route("/")
+	r.POST("/v1/auth/check", _Auth_Check0_HTTP_Handler(srv))
 	r.POST("/v1/auth/login", _Auth_Login0_HTTP_Handler(srv))
 	r.POST("/v1/auth/login_by_code", _Auth_LoginByCode0_HTTP_Handler(srv))
 	r.POST("/v1/auth/reset_password", _Auth_ResetPassword0_HTTP_Handler(srv))
 	r.POST("/v1/auth/new_password", _Auth_NewPassword0_HTTP_Handler(srv))
 	r.POST("/v1/auth/change_password", _Auth_ChangePassword0_HTTP_Handler(srv))
-	r.POST("/v1/auth/generate_code", _Auth_GetCode0_HTTP_Handler(srv))
+	r.POST("/v1/auth/generate_code", _Auth_GenerateCode0_HTTP_Handler(srv))
 	r.POST("/v1/auth/history", _Auth_History0_HTTP_Handler(srv))
+}
+
+func _Auth_Check0_HTTP_Handler(srv AuthHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CheckRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAuthCheck)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.Check(ctx, req.(*CheckRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CheckResponse)
+		return ctx.Result(200, reply)
+	}
 }
 
 func _Auth_Login0_HTTP_Handler(srv AuthHTTPServer) func(ctx http.Context) error {
@@ -143,21 +165,21 @@ func _Auth_ChangePassword0_HTTP_Handler(srv AuthHTTPServer) func(ctx http.Contex
 	}
 }
 
-func _Auth_GetCode0_HTTP_Handler(srv AuthHTTPServer) func(ctx http.Context) error {
+func _Auth_GenerateCode0_HTTP_Handler(srv AuthHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GenerateCodeRequest
 		if err := ctx.Bind(&in); err != nil {
 			return err
 		}
-		http.SetOperation(ctx, OperationAuthGetCode)
+		http.SetOperation(ctx, OperationAuthGenerateCode)
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.GetCode(ctx, req.(*GenerateCodeRequest))
+			return srv.GenerateCode(ctx, req.(*GenerateCodeRequest))
 		})
 		out, err := h(ctx, &in)
 		if err != nil {
 			return err
 		}
-		reply := out.(*GenerateCodeResponse)
+		reply := out.(*AuthNothing)
 		return ctx.Result(200, reply)
 	}
 }
@@ -183,7 +205,8 @@ func _Auth_History0_HTTP_Handler(srv AuthHTTPServer) func(ctx http.Context) erro
 
 type AuthHTTPClient interface {
 	ChangePassword(ctx context.Context, req *ChangePasswordRequest, opts ...http.CallOption) (rsp *AuthNothing, err error)
-	GetCode(ctx context.Context, req *GenerateCodeRequest, opts ...http.CallOption) (rsp *GenerateCodeResponse, err error)
+	Check(ctx context.Context, req *CheckRequest, opts ...http.CallOption) (rsp *CheckResponse, err error)
+	GenerateCode(ctx context.Context, req *GenerateCodeRequest, opts ...http.CallOption) (rsp *AuthNothing, err error)
 	History(ctx context.Context, req *HistoryRequest, opts ...http.CallOption) (rsp *HistoryResponse, err error)
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
 	LoginByCode(ctx context.Context, req *LoginByCodeRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
@@ -212,11 +235,24 @@ func (c *AuthHTTPClientImpl) ChangePassword(ctx context.Context, in *ChangePassw
 	return &out, err
 }
 
-func (c *AuthHTTPClientImpl) GetCode(ctx context.Context, in *GenerateCodeRequest, opts ...http.CallOption) (*GenerateCodeResponse, error) {
-	var out GenerateCodeResponse
+func (c *AuthHTTPClientImpl) Check(ctx context.Context, in *CheckRequest, opts ...http.CallOption) (*CheckResponse, error) {
+	var out CheckResponse
+	pattern := "/v1/auth/check"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationAuthCheck))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, err
+}
+
+func (c *AuthHTTPClientImpl) GenerateCode(ctx context.Context, in *GenerateCodeRequest, opts ...http.CallOption) (*AuthNothing, error) {
+	var out AuthNothing
 	pattern := "/v1/auth/generate_code"
 	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationAuthGetCode))
+	opts = append(opts, http.Operation(OperationAuthGenerateCode))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
