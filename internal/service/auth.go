@@ -9,6 +9,7 @@ import (
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+
 	"github.com/AlekSi/pointer"
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/log"
@@ -127,6 +128,20 @@ func (s *AuthService) ResetPassword(ctx context.Context, req *authV1.ResetPasswo
 }
 
 func (s *AuthService) NewPassword(ctx context.Context, req *authV1.NewPasswordRequest) (*authV1.AuthNothing, error) {
+	if req.Stats == nil {
+		req.Stats = statsFromRequestContext(ctx)
+	}
+
+	dto, err := s.usecase.MakeNewPasswordDTO(req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.usecase.NewPassword(ctx, dto)
+	if err != nil {
+		return nil, err
+	}
+
 	return &authV1.AuthNothing{}, nil
 }
 
@@ -134,18 +149,71 @@ func (s *AuthService) ChangePassword(ctx context.Context, req *authV1.ChangePass
 	*authV1.AuthNothing,
 	error,
 ) {
+	if req.Stats == nil {
+		req.Stats = statsFromRequestContext(ctx)
+	}
+
+	dto, err := s.usecase.MakeChangePasswordDTO(req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.usecase.ChangePassword(ctx, dto)
+	if err != nil {
+		return nil, err
+	}
+
 	return &authV1.AuthNothing{}, nil
 }
 
 func (s *AuthService) GenerateCode(ctx context.Context, req *authV1.GenerateCodeRequest) (
-	*authV1.GenerateCodeResponse,
+	*authV1.AuthNothing,
 	error,
 ) {
-	return &authV1.GenerateCodeResponse{}, nil
+	if req.Stats == nil {
+		req.Stats = statsFromRequestContext(ctx)
+	}
+
+	dto, err := s.usecase.MakeGenerateCodeDTO(req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.usecase.GenerateCode(ctx, dto)
+	if err != nil {
+		return nil, err
+	}
+
+	return &authV1.AuthNothing{}, nil
 }
 
 func (s *AuthService) History(ctx context.Context, req *authV1.HistoryRequest) (*authV1.HistoryResponse, error) {
-	return &authV1.HistoryResponse{}, nil
+	resp := &authV1.HistoryResponse{
+		Items: make([]*authV1.HistoryItem, 0),
+	}
+
+	dto, err := s.usecase.MakeHistoryDTO(req)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := s.usecase.History(ctx, dto)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range items {
+		history := &authV1.HistoryItem{
+			Id:        int64(item.ID),
+			When:      timestamppb.New(item.CreatedAt),
+			Event:     item.Event,
+			Ip:        pointer.GetString(item.IP),
+			UserAgent: pointer.GetString(item.UserAgent),
+		}
+		resp.Items = append(resp.Items, history)
+	}
+
+	return resp, nil
 }
 
 func statsFromRequestContext(ctx context.Context) *authV1.Stats {

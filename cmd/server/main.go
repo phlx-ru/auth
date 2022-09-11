@@ -119,6 +119,9 @@ func run() error {
 
 	n := bc.Client.Grpc.Notifications
 	notificationsClient, err := clients.NewNotifications(ctx, n.Endpoint, n.Timeout.AsDuration(), metric, logs)
+	if err != nil {
+		return err
+	}
 
 	app, err := wireApp(ctx, database, bc.Auth, bc.Server, notificationsClient, metric, logs)
 	if err != nil {

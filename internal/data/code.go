@@ -12,6 +12,7 @@ import (
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -36,7 +37,7 @@ func NewCodeRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.Cod
 	}
 }
 
-func (c *codeRepo) Save(ctx context.Context, code *ent.Code) (*ent.Code, error) {
+func (c *codeRepo) Create(ctx context.Context, code *ent.Code) (*ent.Code, error) {
 	defer c.metric.NewTiming().Send(metricCodeSaveTimings)
 	if code == nil {
 		return nil, errors.New("code is empty")
@@ -58,7 +59,7 @@ func (c *codeRepo) FindForUser(ctx context.Context, userID int) (*ent.Code, erro
 	return c.client(ctx).Query().
 		Where(codeFilterByUserID(userID)).
 		Where(codeFilterNotExpired(actualTime)).
-		Order(codeOrderByCreatedAt(`desc`)).
+		Order(codeOrderByCreatedAt(orderDesc)).
 		First(ctx)
 }
 
@@ -88,7 +89,7 @@ func codeFilterNotExpired(forTime time.Time) predicate.Code {
 }
 
 func codeOrderByCreatedAt(direction string) ent.OrderFunc {
-	if strings.ToLower(direction) == `desc` {
+	if strings.ToLower(direction) == orderDesc {
 		return ent.Desc(`created_at`)
 	}
 	return ent.Asc(`created_at`)

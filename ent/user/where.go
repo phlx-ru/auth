@@ -129,6 +129,13 @@ func PasswordReset(v string) predicate.User {
 	})
 }
 
+// PasswordResetExpiredAt applies equality check predicate on the "password_reset_expired_at" field. It's identical to PasswordResetExpiredAtEQ.
+func PasswordResetExpiredAt(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldPasswordResetExpiredAt), v))
+	})
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -910,6 +917,84 @@ func PasswordResetEqualFold(v string) predicate.User {
 func PasswordResetContainsFold(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldPasswordReset), v))
+	})
+}
+
+// PasswordResetExpiredAtEQ applies the EQ predicate on the "password_reset_expired_at" field.
+func PasswordResetExpiredAtEQ(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldPasswordResetExpiredAt), v))
+	})
+}
+
+// PasswordResetExpiredAtNEQ applies the NEQ predicate on the "password_reset_expired_at" field.
+func PasswordResetExpiredAtNEQ(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldPasswordResetExpiredAt), v))
+	})
+}
+
+// PasswordResetExpiredAtIn applies the In predicate on the "password_reset_expired_at" field.
+func PasswordResetExpiredAtIn(vs ...time.Time) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.In(s.C(FieldPasswordResetExpiredAt), v...))
+	})
+}
+
+// PasswordResetExpiredAtNotIn applies the NotIn predicate on the "password_reset_expired_at" field.
+func PasswordResetExpiredAtNotIn(vs ...time.Time) predicate.User {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotIn(s.C(FieldPasswordResetExpiredAt), v...))
+	})
+}
+
+// PasswordResetExpiredAtGT applies the GT predicate on the "password_reset_expired_at" field.
+func PasswordResetExpiredAtGT(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldPasswordResetExpiredAt), v))
+	})
+}
+
+// PasswordResetExpiredAtGTE applies the GTE predicate on the "password_reset_expired_at" field.
+func PasswordResetExpiredAtGTE(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldPasswordResetExpiredAt), v))
+	})
+}
+
+// PasswordResetExpiredAtLT applies the LT predicate on the "password_reset_expired_at" field.
+func PasswordResetExpiredAtLT(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldPasswordResetExpiredAt), v))
+	})
+}
+
+// PasswordResetExpiredAtLTE applies the LTE predicate on the "password_reset_expired_at" field.
+func PasswordResetExpiredAtLTE(v time.Time) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldPasswordResetExpiredAt), v))
+	})
+}
+
+// PasswordResetExpiredAtIsNil applies the IsNil predicate on the "password_reset_expired_at" field.
+func PasswordResetExpiredAtIsNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldPasswordResetExpiredAt)))
+	})
+}
+
+// PasswordResetExpiredAtNotNil applies the NotNil predicate on the "password_reset_expired_at" field.
+func PasswordResetExpiredAtNotNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldPasswordResetExpiredAt)))
 	})
 }
 

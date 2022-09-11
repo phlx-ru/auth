@@ -15,15 +15,11 @@ const (
 	metricUserAddSuccess = `biz.user.add.success`
 	metricUserAddFailure = `biz.user.add.failure`
 	metricUserAddTimings = `biz.user.add.timings`
-)
 
-type UserRepo interface {
-	Save(context.Context, *ent.User) (*ent.User, error)
-	Update(context.Context, *ent.User) (*ent.User, error)
-	FindByID(ctx context.Context, id int) (*ent.User, error)
-	FindByEmail(ctx context.Context, email string) (*ent.User, error)
-	FindByPhone(ctx context.Context, phone string) (*ent.User, error)
-}
+	metricUserEditSuccess = `biz.user.edit.success`
+	metricUserEditFailure = `biz.user.edit.failure`
+	metricUserEditTimings = `biz.user.edit.timings`
+)
 
 type UserUsecase struct {
 	repo   UserRepo
@@ -51,7 +47,7 @@ func (u *UserUsecase) Add(ctx context.Context, dto *UserAddDTO) (*ent.User, erro
 		DeactivatedAt: dto.DeactivatedAt,
 	}
 
-	user, err := u.repo.Save(ctx, user)
+	user, err := u.repo.Create(ctx, user)
 
 	if err != nil {
 		u.metric.Increment(metricUserAddFailure)
@@ -60,5 +56,67 @@ func (u *UserUsecase) Add(ctx context.Context, dto *UserAddDTO) (*ent.User, erro
 	}
 
 	u.metric.Increment(metricUserAddSuccess)
-	return nil, err
+	return user, err
+}
+
+func (u *UserUsecase) Edit(ctx context.Context, dto *UserEditDTO) (*ent.User, error) {
+	defer u.metric.NewTiming().Send(metricUserEditTimings)
+
+	var err error
+	defer func() {
+		if err != nil {
+			u.logs.WithContext(ctx).Errorf(`failed to edit user: %v`, err)
+			u.metric.Increment(metricUserEditFailure)
+		} else {
+			u.metric.Increment(metricUserEditSuccess)
+		}
+	}()
+
+	user, err := u.repo.FindByID(ctx, dto.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if dto.Type != nil {
+		user.Type = *dto.Type
+	}
+
+	if dto.Email != nil {
+		if *dto.Email == "" {
+			user.Email = nil
+		} else {
+			user.Email = dto.Email
+		}
+	}
+
+	if dto.Phone != nil {
+		if *dto.Phone == "" {
+			user.Phone = nil
+		} else {
+			user.Phone = dto.Phone
+		}
+	}
+
+	if dto.TelegramChatID != nil {
+		if *dto.TelegramChatID == "" {
+			user.TelegramChatID = nil
+		} else {
+			user.TelegramChatID = dto.TelegramChatID
+		}
+	}
+
+	if dto.DisplayName != nil {
+		user.DisplayName = *dto.DisplayName
+	}
+
+	if dto.PasswordHash != nil {
+		if *dto.PasswordHash == "" {
+			user.PasswordHash = nil
+		} else {
+			user.PasswordHash = dto.PasswordHash
+		}
+	}
+
+	user, err = u.repo.Update(ctx, user)
+	return user, err
 }

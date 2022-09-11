@@ -11,11 +11,11 @@ import (
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
 	"auth/internal/pkg/slices"
-	"github.com/google/wire"
 
 	entDialectSQL "entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/schema"
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/google/wire"
 	_ "github.com/lib/pq" // postgres driver for Go's database/sql package
 )
 
@@ -24,6 +24,8 @@ const (
 	maxIdleConnections = 30
 	maxConnLifetime    = 5 * time.Minute
 	sendStatsEvery     = time.Second
+
+	orderDesc = `desc`
 )
 
 // ProviderRepoSet is data providers.

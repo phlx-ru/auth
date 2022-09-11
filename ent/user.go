@@ -30,6 +30,8 @@ type User struct {
 	PasswordHash *string `json:"-"`
 	// reset string for change password
 	PasswordReset *string `json:"-"`
+	// expired time for password_reset activity
+	PasswordResetExpiredAt *time.Time `json:"password_reset_expired_at,omitempty"`
 	// creation time of code
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// last update time of code
@@ -47,7 +49,7 @@ func (*User) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullInt64)
 		case user.FieldDisplayName, user.FieldType, user.FieldEmail, user.FieldPhone, user.FieldTelegramChatID, user.FieldPasswordHash, user.FieldPasswordReset:
 			values[i] = new(sql.NullString)
-		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldDeactivatedAt:
+		case user.FieldPasswordResetExpiredAt, user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldDeactivatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type User", columns[i])
@@ -116,6 +118,13 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 			} else if value.Valid {
 				u.PasswordReset = new(string)
 				*u.PasswordReset = value.String
+			}
+		case user.FieldPasswordResetExpiredAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field password_reset_expired_at", values[i])
+			} else if value.Valid {
+				u.PasswordResetExpiredAt = new(time.Time)
+				*u.PasswordResetExpiredAt = value.Time
 			}
 		case user.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -188,6 +197,11 @@ func (u *User) String() string {
 	builder.WriteString("password_hash=<sensitive>")
 	builder.WriteString(", ")
 	builder.WriteString("password_reset=<sensitive>")
+	builder.WriteString(", ")
+	if v := u.PasswordResetExpiredAt; v != nil {
+		builder.WriteString("password_reset_expired_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(u.CreatedAt.Format(time.ANSIC))

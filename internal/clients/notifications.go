@@ -10,6 +10,7 @@ import (
 	v1 "auth/api/notification/v1"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -56,7 +57,7 @@ func (n *NotificationsClient) EnqueueMailWithHTML(ctx context.Context, to, subje
 	var err error
 	defer func() {
 		if err != nil {
-			n.logger.WithContext(ctx).Error(`failed to enqueue mail notification: %v`, err)
+			n.logger.WithContext(ctx).Errorf(`failed to enqueue mail notification: %v`, err)
 			n.metric.Increment(metricNotificationsEnqueueMailFailure)
 		} else {
 			n.metric.Increment(metricNotificationsEnqueueMailSuccess)
@@ -88,7 +89,7 @@ func (n *NotificationsClient) EnqueueTelegramWithMarkdown(ctx context.Context, c
 	var err error
 	defer func() {
 		if err != nil {
-			n.logger.WithContext(ctx).Error(`failed to enqueue telegram notification: %v`, err)
+			n.logger.WithContext(ctx).Errorf(`failed to enqueue telegram notification: %v`, err)
 			n.metric.Increment(metricNotificationsEnqueueTelegramFailure)
 		} else {
 			n.metric.Increment(metricNotificationsEnqueueTelegramSuccess)

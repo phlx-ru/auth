@@ -304,6 +304,8 @@ components:
                     type: string
                 email:
                     type: string
+                telegramChatId:
+                    type: string
                 password:
                     type: string
                 activated:
@@ -386,6 +388,8 @@ components:
         auth.v1.EditRequest:
             type: object
             properties:
+                id:
+                    type: string
                 displayName:
                     type: string
                 type:
@@ -393,6 +397,8 @@ components:
                 phone:
                     type: string
                 email:
+                    type: string
+                telegramChatId:
                     type: string
                 password:
                     type: string

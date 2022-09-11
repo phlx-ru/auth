@@ -14,6 +14,7 @@ import (
 	"auth/internal/pkg/secrets"
 	"auth/internal/pkg/template"
 	"auth/internal/pkg/texts"
+
 	"github.com/AlekSi/pointer"
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -26,6 +27,9 @@ const (
 	passwordResetLength = 6
 	randomStringLength  = 16
 
+	codeExpiredInterval   = 1 * time.Minute
+	resetPasswordInterval = 24 * time.Hour // 1 Day
+
 	loginAgainCount             = 10
 	loginAgainInterval          = time.Minute
 	loginByCodeAgainCount       = 3
@@ -37,7 +41,7 @@ const (
 	changePasswordAgainCount    = 3
 	changePasswordAgainInterval = time.Minute
 	generateCodeAgainCount      = 1
-	generateCodeAgainInterval   = time.Minute
+	generateCodeAgainInterval   = 2 * time.Minute
 
 	metricAuthCheckSuccess = `biz.auth.check.success`
 	metricAuthCheckFailure = `biz.auth.check.failure`
@@ -51,17 +55,17 @@ const (
 	metricAuthLoginByCodeFailure = `biz.auth.loginByCode.failure`
 	metricAuthLoginByCodeTimings = `biz.auth.loginByCode.timings`
 
-	metricAuthResetPasswordSuccess = `biz.auth.resetPassword.success`
-	metricAuthResetPasswordFailure = `biz.auth.resetPassword.failure`
-	metricAuthResetPasswordTimings = `biz.auth.resetPassword.timings`
+	metricAuthResetPasswordSuccess = `biz.auth.resetPassword.success` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
+	metricAuthResetPasswordFailure = `biz.auth.resetPassword.failure` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
+	metricAuthResetPasswordTimings = `biz.auth.resetPassword.timings` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
 
-	metricAuthNewPasswordSuccess = `biz.auth.newPassword.success`
-	metricAuthNewPasswordFailure = `biz.auth.newPassword.failure`
-	metricAuthNewPasswordTimings = `biz.auth.newPassword.timings`
+	metricAuthNewPasswordSuccess = `biz.auth.newPassword.success` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
+	metricAuthNewPasswordFailure = `biz.auth.newPassword.failure` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
+	metricAuthNewPasswordTimings = `biz.auth.newPassword.timings` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
 
-	metricAuthChangePasswordSuccess = `biz.auth.changePassword.success`
-	metricAuthChangePasswordFailure = `biz.auth.changePassword.failure`
-	metricAuthChangePasswordTimings = `biz.auth.changePassword.timings`
+	metricAuthChangePasswordSuccess = `biz.auth.changePassword.success` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
+	metricAuthChangePasswordFailure = `biz.auth.changePassword.failure` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
+	metricAuthChangePasswordTimings = `biz.auth.changePassword.timings` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
 
 	metricAuthGenerateCodeSuccess = `biz.auth.generateCode.success`
 	metricAuthGenerateCodeFailure = `biz.auth.generateCode.failure`
@@ -84,27 +88,6 @@ var (
 	ErrChangePasswordTooOften = errors.New(texts.ChangePasswordTooOften)
 	ErrGenerateCodeTooOften   = errors.New(texts.GenerateCodeTooOften)
 )
-
-type SessionRepo interface {
-	Save(context.Context, *ent.Session) (*ent.Session, error)
-	FindByToken(ctx context.Context, token string) (*ent.Session, error)
-}
-
-type CodeRepo interface {
-	Save(context.Context, *ent.Code) (*ent.Code, error)
-	FindForUser(ctx context.Context, userID int) (*ent.Code, error)
-}
-
-type HistoryRepo interface {
-	Save(context.Context, *ent.History) (*ent.History, error)
-	FindUserEvents(ctx context.Context, userID, limit, offset int) ([]*ent.History, error)
-	FindLastUserEvents(
-		ctx context.Context,
-		userID int,
-		types []string,
-		interval time.Duration,
-	) ([]*ent.History, error)
-}
 
 type AuthUsecase struct {
 	userRepo     UserRepo
@@ -206,7 +189,7 @@ func (a *AuthUsecase) Login(ctx context.Context, dto *LoginDTO) (string, *time.T
 	match := secrets.MustCompareSourceAndHash(dto.Password, *foundedUser.PasswordHash)
 	event := historyModel(foundedUser.ID, schema.EventLoginOk, dto.Stats)
 	defer func() {
-		_, err := a.historyRepo.Save(ctx, event)
+		_, err = a.historyRepo.Create(ctx, event)
 		if err != nil {
 			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
 		}
@@ -216,7 +199,7 @@ func (a *AuthUsecase) Login(ctx context.Context, dto *LoginDTO) (string, *time.T
 		return "", nil, ErrWrongPassword
 	}
 	session := sessionModelByLogin(foundedUser.ID, *foundedUser.PasswordHash, dto)
-	_, err = a.sessionRepo.Save(ctx, session)
+	_, err = a.sessionRepo.Create(ctx, session)
 	if err != nil {
 		return "", nil, err
 	}
@@ -253,7 +236,8 @@ func (a *AuthUsecase) LoginByCode(ctx context.Context, dto *LoginByCodeDTO) (str
 	if len(events) > loginByCodeAgainCount {
 		return "", nil, ErrLoginByCodeTooOften
 	}
-	actualCode, err := a.codeRepo.FindForUser(ctx, foundedUser.ID)
+	var actualCode *ent.Code
+	actualCode, err = a.codeRepo.FindForUser(ctx, foundedUser.ID)
 	if ent.IsNotFound(err) {
 		return "", nil, fmt.Errorf(`user by username %s does not have actual code`, dto.Username)
 	}
@@ -263,7 +247,7 @@ func (a *AuthUsecase) LoginByCode(ctx context.Context, dto *LoginByCodeDTO) (str
 	match := actualCode.Content == dto.Code
 	event := historyModel(foundedUser.ID, schema.EventLoginByCodeOk, dto.Stats)
 	defer func() {
-		if _, err := a.historyRepo.Save(ctx, event); err != nil {
+		if _, err = a.historyRepo.Create(ctx, event); err != nil {
 			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
 		}
 	}()
@@ -272,7 +256,7 @@ func (a *AuthUsecase) LoginByCode(ctx context.Context, dto *LoginByCodeDTO) (str
 		return "", nil, ErrWrongCode
 	}
 	session := sessionModelByLoginByCode(foundedUser.ID, actualCode.Content, dto)
-	_, err = a.sessionRepo.Save(ctx, session)
+	_, err = a.sessionRepo.Create(ctx, session)
 	if err != nil {
 		return "", nil, err
 	}
@@ -312,13 +296,14 @@ func (a *AuthUsecase) ResetPassword(ctx context.Context, dto *ResetPasswordDTO) 
 
 	event := historyModel(foundedUser.ID, schema.EventResetPasswordRequest, dto.Stats)
 	defer func() {
-		_, err := a.historyRepo.Save(ctx, event)
+		_, err = a.historyRepo.Create(ctx, event)
 		if err != nil {
 			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
 		}
 	}()
 	hash := makeHash(passwordResetLength, dto.Username, makeRandomString(randomStringLength))
 	foundedUser.PasswordReset = &hash
+	foundedUser.PasswordResetExpiredAt = pointer.ToTime(time.Now().Add(resetPasswordInterval))
 	_, err = a.userRepo.Update(ctx, foundedUser)
 	if err != nil {
 		return err
@@ -371,10 +356,21 @@ func (a *AuthUsecase) NewPassword(ctx context.Context, dto *NewPasswordDTO) erro
 	if foundedUser.PasswordReset == nil {
 		return errors.New(`user password reset hash is empty`)
 	}
-	match := dto.PasswordResetHash != *foundedUser.PasswordReset
+	if foundedUser.PasswordResetExpiredAt == nil {
+		return errors.New(`user password reset expiration time must be set`)
+	}
+	if foundedUser.PasswordResetExpiredAt.Before(time.Now()) {
+		foundedUser.PasswordReset = nil
+		foundedUser.PasswordResetExpiredAt = nil
+		if _, err = a.userRepo.Update(ctx, foundedUser); err != nil {
+			a.logs.WithContext(ctx).Errorf(`failed to save founded user: %v`, err)
+		}
+		return errors.New(`password reset hash is expired, try reset password again`)
+	}
+	match := dto.PasswordResetHash == *foundedUser.PasswordReset
 	event := historyModel(foundedUser.ID, schema.EventNewPasswordOk, dto.Stats)
 	defer func() {
-		if _, err := a.historyRepo.Save(ctx, event); err != nil {
+		if _, err = a.historyRepo.Create(ctx, event); err != nil {
 			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
 		}
 	}()
@@ -421,7 +417,7 @@ func (a *AuthUsecase) ChangePassword(ctx context.Context, dto *ChangePasswordDTO
 	match := secrets.MustCompareSourceAndHash(dto.OldPassword, *foundedUser.PasswordHash)
 	event := historyModel(foundedUser.ID, schema.EventChangePasswordOk, dto.Stats)
 	defer func() {
-		if _, err := a.historyRepo.Save(ctx, event); err != nil {
+		if _, err = a.historyRepo.Create(ctx, event); err != nil {
 			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
 		}
 	}()
@@ -467,20 +463,21 @@ func (a *AuthUsecase) GenerateCode(ctx context.Context, dto *GenerateCodeDTO) er
 
 	event := historyModel(foundedUser.ID, schema.EventGenerateCodeRequest, dto.Stats)
 	defer func() {
-		_, err := a.historyRepo.Save(ctx, event)
+		_, err = a.historyRepo.Create(ctx, event)
 		if err != nil {
 			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
 		}
 	}()
 
 	code := mustMakeCode(codeLength)
-	_, err = a.codeRepo.Save(ctx, codeModel(foundedUser.ID, code))
+	_, err = a.codeRepo.Create(ctx, codeModel(foundedUser.ID, code, codeExpiredInterval))
 	if err != nil {
 		return err
 	}
 
 	interpolation := map[string]any{
-		"code": code,
+		"code":    code,
+		"minutes": codeExpiredInterval.Minutes(),
 	}
 	if foundedUser.TelegramChatID != nil {
 		text := template.MustInterpolate(texts.AuthCodeTelegramBody, interpolation)

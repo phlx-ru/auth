@@ -10,8 +10,8 @@ import (
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
-	"entgo.io/ent/dialect/sql"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -38,7 +38,7 @@ func NewUserRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.Use
 	}
 }
 
-func (u *userRepo) Save(ctx context.Context, user *ent.User) (*ent.User, error) {
+func (u *userRepo) Create(ctx context.Context, user *ent.User) (*ent.User, error) {
 	defer u.metric.NewTiming().Send(metricUserSaveTimings)
 	if user == nil {
 		return nil, errors.New("user is empty")
@@ -52,26 +52,65 @@ func (u *userRepo) Save(ctx context.Context, user *ent.User) (*ent.User, error) 
 		SetNillableTelegramChatID(user.TelegramChatID).
 		SetNillablePasswordHash(user.PasswordHash).
 		SetNillablePasswordReset(user.PasswordReset).
+		SetNillablePasswordResetExpiredAt(user.PasswordResetExpiredAt).
 		SetNillableDeactivatedAt(user.DeactivatedAt).
 		Save(ctx)
 }
 
+// Update all fields of user record. CAUTION: if field in 'user' not set — it will be cleared
 func (u *userRepo) Update(ctx context.Context, user *ent.User) (*ent.User, error) {
 	defer u.metric.NewTiming().Send(metricUserUpdateTimings)
 	if user == nil {
 		return nil, errors.New("user is empty")
 	}
 
-	return u.client(ctx).UpdateOne(user).
+	updated := u.client(ctx).UpdateOne(user).
 		SetDisplayName(user.DisplayName).
-		SetType(user.Type).
-		SetNillableEmail(user.Email).
-		SetNillablePhone(user.Phone).
-		SetNillableTelegramChatID(user.TelegramChatID).
-		SetNillablePasswordHash(user.PasswordHash).
-		SetNillablePasswordReset(user.PasswordReset).
-		SetNillableDeactivatedAt(user.DeactivatedAt).
-		Save(ctx)
+		SetType(user.Type)
+
+	if user.Email != nil {
+		updated.SetEmail(*user.Email)
+	} else {
+		updated.ClearEmail()
+	}
+
+	if user.Phone != nil {
+		updated.SetPhone(*user.Phone)
+	} else {
+		updated.ClearEmail()
+	}
+
+	if user.TelegramChatID != nil {
+		updated.SetTelegramChatID(*user.TelegramChatID)
+	} else {
+		updated.ClearTelegramChatID()
+	}
+
+	if user.DeactivatedAt != nil {
+		updated.SetDeactivatedAt(*user.DeactivatedAt)
+	} else {
+		updated.ClearDeactivatedAt()
+	}
+
+	if user.PasswordHash != nil {
+		updated.SetPasswordHash(*user.PasswordHash)
+	} else {
+		updated.ClearPasswordHash()
+	}
+
+	if user.PasswordReset != nil {
+		updated.SetPasswordReset(*user.PasswordReset)
+	} else {
+		updated.ClearPasswordReset()
+	}
+
+	if user.PasswordResetExpiredAt != nil {
+		updated.SetPasswordResetExpiredAt(*user.PasswordResetExpiredAt)
+	} else {
+		updated.ClearPasswordResetExpiredAt()
+	}
+
+	return updated.Save(ctx)
 }
 
 func (u *userRepo) FindByID(ctx context.Context, id int) (*ent.User, error) {

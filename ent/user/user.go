@@ -25,6 +25,8 @@ const (
 	FieldPasswordHash = "password_hash"
 	// FieldPasswordReset holds the string denoting the password_reset field in the database.
 	FieldPasswordReset = "password_reset"
+	// FieldPasswordResetExpiredAt holds the string denoting the password_reset_expired_at field in the database.
+	FieldPasswordResetExpiredAt = "password_reset_expired_at"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -45,6 +47,7 @@ var Columns = []string{
 	FieldTelegramChatID,
 	FieldPasswordHash,
 	FieldPasswordReset,
+	FieldPasswordResetExpiredAt,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeactivatedAt,

@@ -64,6 +64,12 @@ func (User) Fields() []ent.Field {
 			Sensitive().
 			Comment(`reset string for change password`),
 
+		field.Time(`password_reset_expired_at`).
+			Optional().
+			Nillable().
+			Default(nil).
+			Comment(`expired time for password_reset activity`),
+
 		field.Time(`created_at`).
 			Default(time.Now).
 			Immutable().

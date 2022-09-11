@@ -113,6 +113,7 @@ var (
 		{Name: "telegram_chat_id", Type: field.TypeString, Nullable: true},
 		{Name: "password_hash", Type: field.TypeString, Nullable: true},
 		{Name: "password_reset", Type: field.TypeString, Nullable: true},
+		{Name: "password_reset_expired_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
 		{Name: "deactivated_at", Type: field.TypeTime, Nullable: true},

@@ -46,7 +46,7 @@ func SeedMainEntities(ctx context.Context, client *ent.Client) error {
 func seedTheCreator(ctx context.Context, client *ent.Client) error {
 	_, err := client.User.Get(ctx, 1)
 	if ent.IsNotFound(err) {
-		_, err := makeTheCreator(client).Save(ctx)
+		_, err = makeTheCreator(client).Save(ctx)
 		return err
 	}
 	if err != nil {

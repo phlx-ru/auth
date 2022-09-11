@@ -12,6 +12,7 @@ import (
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -37,7 +38,7 @@ func NewSessionRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.
 	}
 }
 
-func (s *sessionRepo) Save(ctx context.Context, session *ent.Session) (*ent.Session, error) {
+func (s *sessionRepo) Create(ctx context.Context, session *ent.Session) (*ent.Session, error) {
 	defer s.metric.NewTiming().Send(metricSessionSaveTimings)
 	if session == nil {
 		return nil, errors.New(`session is empty`)

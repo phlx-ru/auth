@@ -3,7 +3,7 @@ package biz
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -72,10 +72,11 @@ func sessionModelByLoginByCode(userID int, code string, dto *LoginByCodeDTO) *en
 	return session
 }
 
-func codeModel(userID int, code string) *ent.Code {
+func codeModel(userID int, code string, expiredInterval time.Duration) *ent.Code {
 	return &ent.Code{
-		UserID:  userID,
-		Content: code,
+		UserID:    userID,
+		Content:   code,
+		ExpiredAt: time.Now().Add(expiredInterval),
 	}
 }
 
@@ -93,7 +94,7 @@ func mustMakeCode(length int) string {
 }
 
 func makeHash(length int, username, secret string) string {
-	h := sha1.New()
+	h := sha256.New()
 	h.Write([]byte(username + time.Now().String() + secret))
 	start := 6
 	return hex.EncodeToString(h.Sum(nil))[start : start+length]

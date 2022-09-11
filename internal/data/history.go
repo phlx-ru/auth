@@ -11,6 +11,7 @@ import (
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -36,7 +37,7 @@ func NewHistoryRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.
 	}
 }
 
-func (h *historyRepo) Save(ctx context.Context, history *ent.History) (*ent.History, error) {
+func (h *historyRepo) Create(ctx context.Context, history *ent.History) (*ent.History, error) {
 	defer h.metric.NewTiming().Send(metricHistorySaveTimings)
 	if history == nil {
 		return nil, errors.New("code is empty")
@@ -86,8 +87,8 @@ func (h *historyRepo) FindUserEvents(ctx context.Context, userID, limit, offset 
 	if limit > 1000 {
 		return nil, errors.New("limit must be less or equal than 1000")
 	}
-	if offset <= 0 {
-		return nil, errors.New("offset must be greater than 0")
+	if offset < 0 {
+		return nil, errors.New("offset must be greater or equal than 0")
 	}
 	if offset > 10000 {
 		return nil, errors.New("offset must be less or equal than 10000")
@@ -120,7 +121,7 @@ func historyFilterByUserID(userID int) predicate.History {
 
 func historyFilterByTypes(types []string) predicate.History {
 	return func(selector *sql.Selector) {
-		selector.Where(sql.P().In(`event`, types))
+		selector.Where(sql.P().In(`event`, itemsToAny(types)...))
 	}
 }
 
@@ -128,4 +129,12 @@ func historyFilterByLastInterval(interval time.Duration, now time.Time) predicat
 	return func(selector *sql.Selector) {
 		selector.Where(sql.P().GTE(`created_at`, now.Add(-interval)))
 	}
+}
+
+func itemsToAny[T comparable](items []T) []any {
+	res := []any{}
+	for _, item := range items {
+		res = append(res, item)
+	}
+	return res
 }

@@ -62,7 +62,7 @@ type CheckDTO struct {
 
 type LoginByCodeDTO struct {
 	Username string `json:"username" validate:"required,min=3,max=255"`
-	Code     string `json:"code" validate:"required,min=8,max=16"`
+	Code     string `json:"code" validate:"required,min=3,max=64"`
 	Remember bool   `json:"remember"`
 	Stats    *Stats `json:"stats"`
 }
@@ -104,7 +104,7 @@ func (a *AuthUsecase) MakeResetPasswordDTO(l *v1.ResetPasswordRequest) (*ResetPa
 
 type NewPasswordDTO struct {
 	Username          string `json:"username" validate:"required,min=3,max=255"`
-	PasswordResetHash string `json:"passwordResetHash" validate:"required,min=8,max=255"`
+	PasswordResetHash string `json:"passwordResetHash" validate:"required,min=4,max=255"`
 	Password          string `json:"password" validate:"required,min=8,max=255"`
 	Stats             *Stats `json:"stats"`
 }
@@ -170,7 +170,7 @@ func (a *AuthUsecase) MakeGenerateCodeDTO(l *v1.GenerateCodeRequest) (*GenerateC
 type HistoryDTO struct {
 	UserID int `json:"userId" validate:"required,min=1"`
 	Limit  int `json:"limit" validate:"required,min=0,max=1000"`
-	Offset int `json:"offset" validate:"required,min=0,max=10000"`
+	Offset int `json:"offset" validate:"min=0,max=10000"`
 }
 
 func (a *AuthUsecase) MakeHistoryDTO(l *v1.HistoryRequest) (*HistoryDTO, error) {

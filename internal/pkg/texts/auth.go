@@ -1,5 +1,6 @@
 package texts
 
+//nolint:gosec
 const (
 	UsernameNotFound       = `пользователь с почтой или телефоном '{{ .username }}' не найден`
 	WrongPassword          = `неправильный пароль`

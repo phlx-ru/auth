@@ -50,7 +50,7 @@ func (s *UserService) Add(ctx context.Context, req *v1.AddRequest) (*v1.AddRespo
 			s.metric.Increment(metricUserAddSuccess)
 		}
 	}()
-	addDTO, err := biz.MakeUserAddDTOFromAddRequest(req)
+	addDTO, err := s.usecase.MakeUserAddDTO(req)
 	if err != nil {
 		return nil, err
 	}

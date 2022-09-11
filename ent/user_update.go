@@ -140,6 +140,26 @@ func (uu *UserUpdate) ClearPasswordReset() *UserUpdate {
 	return uu
 }
 
+// SetPasswordResetExpiredAt sets the "password_reset_expired_at" field.
+func (uu *UserUpdate) SetPasswordResetExpiredAt(t time.Time) *UserUpdate {
+	uu.mutation.SetPasswordResetExpiredAt(t)
+	return uu
+}
+
+// SetNillablePasswordResetExpiredAt sets the "password_reset_expired_at" field if the given value is not nil.
+func (uu *UserUpdate) SetNillablePasswordResetExpiredAt(t *time.Time) *UserUpdate {
+	if t != nil {
+		uu.SetPasswordResetExpiredAt(*t)
+	}
+	return uu
+}
+
+// ClearPasswordResetExpiredAt clears the value of the "password_reset_expired_at" field.
+func (uu *UserUpdate) ClearPasswordResetExpiredAt() *UserUpdate {
+	uu.mutation.ClearPasswordResetExpiredAt()
+	return uu
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (uu *UserUpdate) SetUpdatedAt(t time.Time) *UserUpdate {
 	uu.mutation.SetUpdatedAt(t)
@@ -331,6 +351,19 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: user.FieldPasswordReset,
 		})
 	}
+	if value, ok := uu.mutation.PasswordResetExpiredAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: user.FieldPasswordResetExpiredAt,
+		})
+	}
+	if uu.mutation.PasswordResetExpiredAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: user.FieldPasswordResetExpiredAt,
+		})
+	}
 	if value, ok := uu.mutation.UpdatedAt(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeTime,
@@ -479,6 +512,26 @@ func (uuo *UserUpdateOne) SetNillablePasswordReset(s *string) *UserUpdateOne {
 // ClearPasswordReset clears the value of the "password_reset" field.
 func (uuo *UserUpdateOne) ClearPasswordReset() *UserUpdateOne {
 	uuo.mutation.ClearPasswordReset()
+	return uuo
+}
+
+// SetPasswordResetExpiredAt sets the "password_reset_expired_at" field.
+func (uuo *UserUpdateOne) SetPasswordResetExpiredAt(t time.Time) *UserUpdateOne {
+	uuo.mutation.SetPasswordResetExpiredAt(t)
+	return uuo
+}
+
+// SetNillablePasswordResetExpiredAt sets the "password_reset_expired_at" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillablePasswordResetExpiredAt(t *time.Time) *UserUpdateOne {
+	if t != nil {
+		uuo.SetPasswordResetExpiredAt(*t)
+	}
+	return uuo
+}
+
+// ClearPasswordResetExpiredAt clears the value of the "password_reset_expired_at" field.
+func (uuo *UserUpdateOne) ClearPasswordResetExpiredAt() *UserUpdateOne {
+	uuo.mutation.ClearPasswordResetExpiredAt()
 	return uuo
 }
 
@@ -701,6 +754,19 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
 			Column: user.FieldPasswordReset,
+		})
+	}
+	if value, ok := uuo.mutation.PasswordResetExpiredAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: user.FieldPasswordResetExpiredAt,
+		})
+	}
+	if uuo.mutation.PasswordResetExpiredAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: user.FieldPasswordResetExpiredAt,
 		})
 	}
 	if value, ok := uuo.mutation.UpdatedAt(); ok {
