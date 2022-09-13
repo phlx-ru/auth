@@ -10,6 +10,7 @@ import (
 	v1 "auth/api/notification/v1"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+	"auth/internal/pkg/sanitize"
 
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -21,6 +22,9 @@ const (
 	metricNotificationsEnqueueTelegramTimings = `clients.notifications.enqueueTelegram.timings`
 	metricNotificationsEnqueueTelegramSuccess = `clients.notifications.enqueueTelegram.success`
 	metricNotificationsEnqueueTelegramFailure = `clients.notifications.enqueueTelegram.failure`
+	metricNotificationsEnqueueSMSTimings      = `clients.notifications.enqueueTelegram.timings`
+	metricNotificationsEnqueueSMSSuccess      = `clients.notifications.enqueueTelegram.success`
+	metricNotificationsEnqueueSMSFailure      = `clients.notifications.enqueueTelegram.failure`
 )
 
 type NotificationsClient struct {
@@ -32,6 +36,7 @@ type NotificationsClient struct {
 type Notifications interface {
 	EnqueueMailWithHTML(ctx context.Context, to, subject, body string) (int64, error)
 	EnqueueTelegramWithMarkdown(ctx context.Context, chatID, text string) (int64, error)
+	EnqueueSMS(ctx context.Context, phone, text string) (int64, error)
 }
 
 func NewNotifications(
@@ -52,6 +57,18 @@ func NewNotifications(
 	}, nil
 }
 
+func defaultSendRequest(setter func(*v1.SendRequest)) *v1.SendRequest {
+	s := &v1.SendRequest{
+		Type:      v1.Type_sms,
+		Payload:   map[string]string{},
+		PlannedAt: nil,
+		Ttl:       300,
+		SenderId:  0,
+	}
+	setter(s)
+	return s
+}
+
 func (n *NotificationsClient) EnqueueMailWithHTML(ctx context.Context, to, subject, body string) (int64, error) {
 	defer n.metric.NewTiming().Send(metricNotificationsEnqueueMailTimings)
 	var err error
@@ -63,19 +80,20 @@ func (n *NotificationsClient) EnqueueMailWithHTML(ctx context.Context, to, subje
 			n.metric.Increment(metricNotificationsEnqueueMailSuccess)
 		}
 	}()
+
 	res, err := n.client.Enqueue(
-		ctx, &v1.SendRequest{
-			Type: v1.Type_email,
-			Payload: map[string]string{
-				"to":      to,
-				"subject": subject,
-				"body":    body,
-				"is_html": fmt.Sprintf("%t", true),
+		ctx,
+		defaultSendRequest(
+			func(s *v1.SendRequest) {
+				s.Type = v1.Type_email
+				s.Payload = map[string]string{
+					"to":      to,
+					"subject": subject,
+					"body":    body,
+					"is_html": fmt.Sprintf("%t", true),
+				}
 			},
-			PlannedAt: nil,
-			Ttl:       300,
-			SenderId:  0,
-		},
+		),
 	)
 	var notificationID int64
 	if res != nil {
@@ -96,19 +114,51 @@ func (n *NotificationsClient) EnqueueTelegramWithMarkdown(ctx context.Context, c
 		}
 	}()
 	res, err := n.client.Enqueue(
-		ctx, &v1.SendRequest{
-			Type: v1.Type_telegram,
-			Payload: map[string]string{
-				// Attributes based on https://core.telegram.org/bots/api#sendmessage
-				"chat_id":         chatID,     // Unique identifier for the target chat or username of the target channel (in the format @channelusername)
-				"text":            text,       // Text of the message to be sent, 1-4096 characters after entities parsing
-				"parse_mode":      "markdown", // Mode for parsing entities in the message text. See formatting options (https://core.telegram.org/bots/api#formatting-options) for more details.
-				"protect_content": "true",     // Protects the contents of the sent message from forwarding and saving
+		ctx,
+		defaultSendRequest(
+			func(s *v1.SendRequest) {
+				s.Type = v1.Type_telegram
+				s.Payload = map[string]string{
+					// Attributes based on https://core.telegram.org/bots/api#sendmessage
+					"chat_id":         chatID,     // Unique identifier for the target chat or username of the target channel (in the format @channelusername)
+					"text":            text,       // Text of the message to be sent, 1-4096 characters after entities parsing
+					"parse_mode":      "markdown", // Mode for parsing entities in the message text. See formatting options (https://core.telegram.org/bots/api#formatting-options) for more details.
+					"protect_content": "true",     // Protects the contents of the sent message from forwarding and saving
+				}
 			},
-			PlannedAt: nil,
-			Ttl:       300,
-			SenderId:  0,
-		},
+		),
+	)
+	var notificationID int64
+	if res != nil {
+		notificationID = res.Id
+	}
+	return notificationID, err
+}
+
+func (n *NotificationsClient) EnqueueSMS(ctx context.Context, phone, text string) (int64, error) {
+	defer n.metric.NewTiming().Send(metricNotificationsEnqueueSMSTimings)
+	var err error
+	defer func() {
+		if err != nil {
+			n.logger.WithContext(ctx).Errorf(`failed to enqueue sms notification: %v`, err)
+			n.metric.Increment(metricNotificationsEnqueueSMSFailure)
+		} else {
+			n.metric.Increment(metricNotificationsEnqueueSMSSuccess)
+		}
+	}()
+	sanitizedPhone := sanitize.PhoneWithCountryCode(phone)
+	res, err := n.client.Enqueue(
+		ctx,
+		defaultSendRequest(
+			func(s *v1.SendRequest) {
+				s.Type = v1.Type_sms
+				s.Payload = map[string]string{
+					"phone": sanitizedPhone, // Phone number in format 79009009090
+					"text":  text,           // Text of SMS message, limit of 160 symbols for latin and 70 symbols for cyrillic
+					"split": "false",        // Split to few messages if text length exceeds limit
+				}
+			},
+		),
 	)
 	var notificationID int64
 	if res != nil {

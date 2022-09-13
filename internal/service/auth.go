@@ -180,6 +180,9 @@ func (s *AuthService) GenerateCode(ctx context.Context, req *authV1.GenerateCode
 	}
 
 	err = s.usecase.GenerateCode(ctx, dto)
+	if err == biz.ErrGenerateCodeTooOften { // TODO MAKE ALL BIZ LOGIC ERROR PROCESSING WITH REASONS
+		return nil, errors.New(http.StatusBadRequest, `generate_code_too_often`, err.Error())
+	}
 	if err != nil {
 		return nil, err
 	}

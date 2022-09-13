@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	countryCode      = `7`
 	nonDigitsPattern = `\D+`
 )
 
@@ -18,4 +19,12 @@ func Phone(phone string) string {
 		sanitized = sanitized[1:]
 	}
 	return sanitized
+}
+
+func PhoneWithCountryCode(phone string) string {
+	if phone == `` {
+		return ``
+	}
+	sanitized := Phone(phone)
+	return countryCode + sanitized
 }
