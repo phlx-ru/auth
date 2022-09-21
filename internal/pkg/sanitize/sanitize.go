@@ -10,6 +10,7 @@ const (
 	nonDigitsPattern = `\D+`
 )
 
+// Phone from `+7 900 900 90 90` returns `9009009090`
 func Phone(phone string) string {
 	if phone == `` {
 		return ``
@@ -21,6 +22,7 @@ func Phone(phone string) string {
 	return sanitized
 }
 
+// PhoneWithCountryCode from `900 900 90 90` returns `79009009090`
 func PhoneWithCountryCode(phone string) string {
 	if phone == `` {
 		return ``

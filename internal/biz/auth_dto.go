@@ -2,9 +2,11 @@ package biz
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	v1 "auth/api/auth/v1"
+	"auth/internal/pkg/sanitize"
 	"auth/internal/pkg/validate"
 )
 
@@ -37,7 +39,7 @@ func (a *AuthUsecase) MakeLoginDTOFromLoginRequest(l *v1.LoginRequest) (*LoginDT
 		return nil, errors.New(`loginRequest is empty`)
 	}
 	dto := &LoginDTO{
-		Username: l.Username,
+		Username: sanitizeUsername(l.Username),
 		Password: l.Password,
 		Remember: l.Remember,
 		Stats:    makeStats(l.Stats),
@@ -72,8 +74,8 @@ func (a *AuthUsecase) MakeLoginByCodeFromLoginByCodeRequest(l *v1.LoginByCodeReq
 		return nil, errors.New(`loginByCodeRequest is empty`)
 	}
 	dto := &LoginByCodeDTO{
-		Username: l.Username,
-		Code:     l.Code,
+		Username: sanitizeUsername(l.Username),
+		Code:     strings.TrimSpace(l.Code),
 		Remember: l.Remember,
 		Stats:    makeStats(l.Stats),
 	}
@@ -93,7 +95,7 @@ func (a *AuthUsecase) MakeResetPasswordDTO(l *v1.ResetPasswordRequest) (*ResetPa
 		return nil, errors.New(`resetPasswordRequest is empty`)
 	}
 	dto := &ResetPasswordDTO{
-		Username: l.Username,
+		Username: sanitizeUsername(l.Username),
 		Stats:    makeStats(l.Stats),
 	}
 	if err := validate.Default(dto); err != nil {
@@ -109,13 +111,22 @@ type NewPasswordDTO struct {
 	Stats             *Stats `json:"stats"`
 }
 
+func sanitizeUsername(username string) string {
+	u := strings.TrimSpace(username)
+	if !strings.Contains(u, `@`) {
+		// case for phone as username
+		u = sanitize.Phone(u)
+	}
+	return u
+}
+
 func (a *AuthUsecase) MakeNewPasswordDTO(l *v1.NewPasswordRequest) (*NewPasswordDTO, error) {
 	if l == nil {
 		return nil, errors.New(`newPasswordRequest is empty`)
 	}
 	dto := &NewPasswordDTO{
-		Username:          l.Username,
-		PasswordResetHash: l.PasswordResetHash,
+		Username:          sanitizeUsername(l.Username),
+		PasswordResetHash: strings.TrimSpace(l.PasswordResetHash),
 		Password:          l.Password,
 		Stats:             makeStats(l.Stats),
 	}
@@ -137,7 +148,7 @@ func (a *AuthUsecase) MakeChangePasswordDTO(l *v1.ChangePasswordRequest) (*Chang
 		return nil, errors.New(`changePasswordRequest is empty`)
 	}
 	dto := &ChangePasswordDTO{
-		Username:    l.Username,
+		Username:    sanitizeUsername(l.Username),
 		NewPassword: l.NewPassword,
 		OldPassword: l.OldPassword,
 		Stats:       makeStats(l.Stats),
@@ -158,7 +169,7 @@ func (a *AuthUsecase) MakeGenerateCodeDTO(l *v1.GenerateCodeRequest) (*GenerateC
 		return nil, errors.New(`generateCodeRequest is empty`)
 	}
 	dto := &GenerateCodeDTO{
-		Username: l.Username,
+		Username: sanitizeUsername(l.Username),
 		Stats:    makeStats(l.Stats),
 	}
 	if err := validate.Default(dto); err != nil {

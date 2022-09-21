@@ -12,7 +12,6 @@ import (
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
 	"auth/internal/pkg/secrets"
-	"auth/internal/pkg/template"
 	"auth/internal/pkg/texts"
 
 	"github.com/AlekSi/pointer"
@@ -309,31 +308,8 @@ func (a *AuthUsecase) ResetPassword(ctx context.Context, dto *ResetPasswordDTO) 
 		return err
 	}
 
-	err = a.sendNotifyWithPasswordReset(ctx, foundedUser, hash)
+	err = a.sendNotifyWithPasswordReset(ctx, foundedUser, dto.Username, hash)
 	return err
-}
-
-func (a *AuthUsecase) sendNotifyWithPasswordReset(ctx context.Context, user *ent.User, hash string) error {
-	interpolation := map[string]any{
-		"hash": hash,
-	}
-	if user.TelegramChatID != nil {
-		text := template.MustInterpolate(texts.ResetPasswordTelegramBody, interpolation)
-		_, err := a.notification.EnqueueTelegramWithMarkdown(ctx, *user.TelegramChatID, text)
-		return err
-	}
-	if user.Phone != nil {
-		text := template.MustInterpolate(texts.ResetPasswordSMSBody, interpolation)
-		_, err := a.notification.EnqueueSMS(ctx, *user.Phone, text)
-		return err
-	}
-	if user.Email != nil {
-		subject := texts.ResetPasswordEmailSubject
-		body := template.MustInterpolate(texts.ResetPasswordEmailBody, interpolation)
-		_, err := a.notification.EnqueueMailWithHTML(ctx, *user.Email, subject, body)
-		return err
-	}
-	return errors.New(`user has not set telegram, phone or email, notify with password reset failed`)
 }
 
 func (a *AuthUsecase) NewPassword(ctx context.Context, dto *NewPasswordDTO) error {
@@ -488,34 +464,8 @@ func (a *AuthUsecase) GenerateCode(ctx context.Context, dto *GenerateCodeDTO) er
 		return err
 	}
 
-	err = a.sendNotifyWithAuthCode(ctx, foundedUser, code)
+	err = a.sendNotifyWithAuthCode(ctx, foundedUser, dto.Username, code)
 	return err
-}
-
-func (a *AuthUsecase) sendNotifyWithAuthCode(ctx context.Context, user *ent.User, code string) error {
-	var err error
-	m := int(codeExpiredInterval.Minutes())
-	interpolation := map[string]any{
-		"code":    code,
-		"minutes": fmt.Sprintf("%d %s", m, texts.Plural(m, `минуту`, `минуты`, `минут`)),
-	}
-	if user.TelegramChatID != nil {
-		text := template.MustInterpolate(texts.AuthCodeTelegramBody, interpolation)
-		_, err = a.notification.EnqueueTelegramWithMarkdown(ctx, *user.TelegramChatID, text)
-		return err
-	}
-	if user.Phone != nil {
-		text := template.MustInterpolate(texts.AuthCodeSMSBody, interpolation)
-		_, err = a.notification.EnqueueSMS(ctx, *user.Phone, text)
-		return err
-	}
-	if user.Email != nil {
-		subject := texts.AuthCodeEmailSubject
-		body := template.MustInterpolate(texts.AuthCodeEmailBody, interpolation)
-		_, err = a.notification.EnqueueMailWithHTML(ctx, *user.Email, subject, body)
-		return err
-	}
-	return errors.New(`user has not set telegram, phone or email, notify with code failed`)
 }
 
 func (a *AuthUsecase) History(ctx context.Context, dto *HistoryDTO) ([]*ent.History, error) {

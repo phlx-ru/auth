@@ -5,12 +5,13 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"strings"
 	"time"
+
+	kratosErrors "github.com/go-kratos/kratos/v2/errors"
 
 	"auth/ent"
 	"auth/internal/pkg/jwt"
@@ -27,13 +28,12 @@ func (a *AuthUsecase) userByUsername(ctx context.Context, username string) (*ent
 		u, err = a.userRepo.FindByPhone(ctx, username)
 	}
 	if ent.IsNotFound(err) {
-		return nil, errors.New(
-			template.MustInterpolate(
-				texts.UsernameNotFound, map[string]any{
-					"username": username,
-				},
-			),
+		message := template.MustInterpolate(
+			texts.UsernameNotFound, map[string]any{
+				"username": username,
+			},
 		)
+		return nil, kratosErrors.BadRequest(`USER_BY_USERNAME_NOT_FOUND`, message)
 	}
 	return u, err
 }

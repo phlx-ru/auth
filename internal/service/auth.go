@@ -226,7 +226,7 @@ func statsFromRequestContext(ctx context.Context) *authV1.Stats {
 	}
 	h := tr.RequestHeader()
 	return &authV1.Stats{
-		Ip:        h.Get("X-Real-Ip"), // TODO Maybe X-Forwarded-For
+		Ip:        h.Get("X-Real-Ip"),
 		UserAgent: h.Get("User-Agent"),
 		DeviceId:  pointer.ToString(h.Get("DeviceId")),
 	}
