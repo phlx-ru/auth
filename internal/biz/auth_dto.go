@@ -52,6 +52,7 @@ func (a *AuthUsecase) MakeLoginDTOFromLoginRequest(l *v1.LoginRequest) (*LoginDT
 
 // CheckDTO is output DTO for Check() method
 type CheckDTO struct {
+	UserID           int
 	UserType         string
 	DisplayName      string
 	Email            *string

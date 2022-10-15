@@ -85,14 +85,16 @@ message CheckRequest {
 
 message CheckResponse {
   message User {
+    // User ID
+    int64 id = 1;
     // User category type
-    string type = 1;
+    string type = 2;
     // User display name
-    string displayName = 2;
+    string displayName = 3;
     // User email
-    optional string email = 3;
+    optional string email = 4;
     // User phone
-    optional string phone = 4;
+    optional string phone = 5;
   }
   message Session {
     // Time until which session and token is active

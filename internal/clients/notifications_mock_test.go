@@ -49,6 +49,21 @@ func (mr *MockNotificationsMockRecorder) EnqueueMailWithHTML(ctx, to, subject, b
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnqueueMailWithHTML", reflect.TypeOf((*MockNotifications)(nil).EnqueueMailWithHTML), ctx, to, subject, body)
 }
 
+// EnqueueSMS mocks base method.
+func (m *MockNotifications) EnqueueSMS(ctx context.Context, phone, text string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnqueueSMS", ctx, phone, text)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnqueueSMS indicates an expected call of EnqueueSMS.
+func (mr *MockNotificationsMockRecorder) EnqueueSMS(ctx, phone, text interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnqueueSMS", reflect.TypeOf((*MockNotifications)(nil).EnqueueSMS), ctx, phone, text)
+}
+
 // EnqueueTelegramWithMarkdown mocks base method.
 func (m *MockNotifications) EnqueueTelegramWithMarkdown(ctx context.Context, chatID, text string) (int64, error) {
 	m.ctrl.T.Helper()

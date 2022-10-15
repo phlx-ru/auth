@@ -50,6 +50,7 @@ func (s *AuthService) Check(ctx context.Context, req *authV1.CheckRequest) (*aut
 	}
 	return &authV1.CheckResponse{
 		User: &authV1.CheckResponse_User{
+			Id:          int64(dto.UserID),
 			Type:        dto.UserType,
 			DisplayName: dto.DisplayName,
 			Email:       dto.Email,

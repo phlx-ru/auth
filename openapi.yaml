@@ -368,6 +368,10 @@ components:
         auth.v1.CheckResponse_User:
             type: object
             properties:
+                id:
+                    type: integer
+                    description: User ID
+                    format: int64
                 type:
                     type: string
                     description: User category type

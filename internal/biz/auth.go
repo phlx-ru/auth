@@ -141,6 +141,7 @@ func (a *AuthUsecase) Check(ctx context.Context, token string) (*CheckDTO, error
 		return nil, err
 	}
 	return &CheckDTO{
+		UserID:           user.ID,
 		UserType:         user.Type,
 		DisplayName:      user.DisplayName,
 		Email:            user.Email,
