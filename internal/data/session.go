@@ -61,15 +61,21 @@ func (s *sessionRepo) Update(ctx context.Context, session *ent.Session) (*ent.Se
 		return nil, errors.New(`session is empty`)
 	}
 
-	return s.client(ctx).UpdateOne(session).
+	updated := s.client(ctx).UpdateOne(session).
 		SetUserID(session.UserID).
 		SetToken(session.Token).
 		SetIP(session.IP).
 		SetUserAgent(session.UserAgent).
-		SetNillableDeviceID(session.DeviceID).
 		SetExpiredAt(session.ExpiredAt).
-		SetIsActive(session.IsActive).
-		Save(ctx)
+		SetIsActive(session.IsActive)
+
+	if session.DeviceID != nil {
+		updated.SetDeviceID(*session.DeviceID)
+	} else {
+		updated.ClearDeviceID()
+	}
+
+	return updated.Save(ctx)
 }
 
 func (s *sessionRepo) FindByUserID(ctx context.Context, userID int) (*ent.Session, error) {
