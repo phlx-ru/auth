@@ -3,6 +3,7 @@ stages:
   - test
 
 build-job:
+  image: golang:1.19
   stage: build
   tags:
     - build
@@ -11,6 +12,7 @@ build-job:
     - make build
 
 lint-job:
+  image: golangci/golangci-lint:latest
   stage: test
   tags:
     - build
@@ -18,8 +20,8 @@ lint-job:
     - echo "Run Golang CI lint for project:"
     - make lint
 
-check-job:
-  stage: test
+test-job:
+  stage: golangci/golangci-lint:latest
   tags:
     - build
   script:
