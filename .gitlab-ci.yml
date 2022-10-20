@@ -19,6 +19,8 @@ lint-job:
     - build
   script:
     - echo "Run Golang CI lint for project:"
+    - go mod tidy
+    - go mod vendor
     - golangci-lint run -v
 
 test-job:
