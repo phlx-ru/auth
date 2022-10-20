@@ -19,7 +19,7 @@ lint-job:
     - build
   script:
     - echo "Run Golang CI lint for project:"
-    - golangci-lint run
+    - golangci-lint run -v
 
 test-job:
   image: "golang:1.19"
