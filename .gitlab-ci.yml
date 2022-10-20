@@ -4,18 +4,24 @@ stages:
 
 build-job:
   stage: build
+  tags:
+    - build
   script:
     - echo "Run Go build for project:"
     - make build
 
 lint-job:
   stage: test
+  tags:
+    - build
   script:
     - echo "Run Golang CI lint for project:"
     - make lint
 
 check-job:
   stage: test
+  tags:
+    - build
   script:
     - echo "Run Go test for project:"
     - make test
