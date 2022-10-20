@@ -19,13 +19,13 @@ lint-job:
     - build
   script:
     - echo "Run Golang CI lint for project:"
-    - make lint
+    - golangci-lint run
 
 test-job:
-  image: "golangci/golangci-lint:latest"
+  image: "golang:1.19"
   stage: test
   tags:
     - build
   script:
     - echo "Run Go test for project:"
-    - make test
+    - go test -race -parallel 10 ./...
