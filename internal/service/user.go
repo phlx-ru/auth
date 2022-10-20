@@ -14,12 +14,14 @@ import (
 )
 
 const (
-	ErrorReasonCommon = `COMMON` // TODO Make custom errors
+	ErrorReasonCommon = `COMMON`
 
 	metricUserAddTimings = `service.user.add.timings`
 	metricUserAddSuccess = `service.user.add.success`
 	metricUserAddFailure = `service.user.add.failure`
 )
+
+// TODO Make custom errors instead of ErrorReasonCommon
 
 type UserService struct {
 	v1.UnimplementedUserServer
