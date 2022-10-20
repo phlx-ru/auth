@@ -11,7 +11,7 @@ build-job:
 lint-job:
   stage: test
   script:
-    - echo "Run golangci-lint for project:"
+    - echo "Run Golang CI lint for project:"
     - make lint
 
 check-job:
