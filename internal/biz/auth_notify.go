@@ -39,7 +39,7 @@ func (a *AuthUsecase) sendNotifyWithPasswordReset(ctx context.Context, user *ent
 	if user.TelegramChatID != nil {
 		return telegram()
 	}
-	a.logs.WithContext(ctx).Errorf(`notify password reset failed: user %d by username %s`, user.ID, username)
+	a.logger.WithContext(ctx).Errorf(`notify password reset failed: user %d by username %s`, user.ID, username)
 	return errors.New(`user has not set telegram, phone or email, notify with password reset failed`)
 }
 
@@ -75,6 +75,6 @@ func (a *AuthUsecase) sendNotifyWithAuthCode(ctx context.Context, user *ent.User
 	if user.TelegramChatID != nil {
 		return telegram()
 	}
-	a.logs.WithContext(ctx).Errorf(`notify auth code failed: user %d by username %s`, user.ID, username)
+	a.logger.WithContext(ctx).Errorf(`notify auth code failed: user %d by username %s`, user.ID, username)
 	return errors.New(`user has not set telegram, phone or email, notify with code failed`)
 }

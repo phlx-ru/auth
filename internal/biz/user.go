@@ -2,41 +2,49 @@ package biz
 
 import (
 	"context"
+	"fmt"
 
 	"auth/ent"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+	"auth/internal/pkg/strings"
 
 	"github.com/AlekSi/pointer"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
 const (
-	metricUserAddSuccess = `biz.user.add.success`
-	metricUserAddFailure = `biz.user.add.failure`
-	metricUserAddTimings = `biz.user.add.timings`
-
-	metricUserEditSuccess = `biz.user.edit.success`
-	metricUserEditFailure = `biz.user.edit.failure`
-	metricUserEditTimings = `biz.user.edit.timings`
+	metricPrefixUser = `biz.user`
 )
 
 type UserUsecase struct {
 	repo   UserRepo
 	metric metrics.Metrics
-	logs   logger.Logger
+	logger logger.Logger
 }
 
 func NewUserUsecase(repo UserRepo, metric metrics.Metrics, logs log.Logger) *UserUsecase {
 	return &UserUsecase{
 		repo:   repo,
 		metric: metric,
-		logs:   logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `biz/user`),
+		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `biz/user`),
+	}
+}
+
+func (u *UserUsecase) postProcess(ctx context.Context, method string, err error) {
+	if err != nil {
+		u.logger.WithContext(ctx).Errorf(`user service method "%s" failed: %v`, method, err)
+		u.metric.Increment(strings.Metric(metricPrefixUser, method, `failure`))
+	} else {
+		u.metric.Increment(strings.Metric(metricPrefixUser, method, `success`))
 	}
 }
 
 func (u *UserUsecase) Add(ctx context.Context, dto *UserAddDTO) (*ent.User, error) {
-	defer u.metric.NewTiming().Send(metricUserAddTimings)
+	method := `add`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
 
 	user := &ent.User{
 		DisplayName:   dto.DisplayName,
@@ -47,30 +55,15 @@ func (u *UserUsecase) Add(ctx context.Context, dto *UserAddDTO) (*ent.User, erro
 		DeactivatedAt: dto.DeactivatedAt,
 	}
 
-	user, err := u.repo.Create(ctx, user)
-
-	if err != nil {
-		u.metric.Increment(metricUserAddFailure)
-		u.logs.WithContext(ctx).Error(err)
-		return nil, err
-	}
-
-	u.metric.Increment(metricUserAddSuccess)
+	user, err = u.repo.Create(ctx, user)
 	return user, err
 }
 
 func (u *UserUsecase) Edit(ctx context.Context, dto *UserEditDTO) (*ent.User, error) {
-	defer u.metric.NewTiming().Send(metricUserEditTimings)
-
+	method := `edit`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
 	var err error
-	defer func() {
-		if err != nil {
-			u.logs.WithContext(ctx).Errorf(`failed to edit user: %v`, err)
-			u.metric.Increment(metricUserEditFailure)
-		} else {
-			u.metric.Increment(metricUserEditSuccess)
-		}
-	}()
+	defer func() { u.postProcess(ctx, method, err) }()
 
 	user, err := u.repo.FindByID(ctx, dto.ID)
 	if err != nil {
@@ -118,5 +111,35 @@ func (u *UserUsecase) Edit(ctx context.Context, dto *UserEditDTO) (*ent.User, er
 	}
 
 	user, err = u.repo.Update(ctx, user)
+	return user, err
+}
+
+func (u *UserUsecase) Activate(ctx context.Context, userID int) (*ent.User, error) {
+	method := `activate`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	if userID <= 0 {
+		return nil, fmt.Errorf("user id must be positive integer, get %d", userID)
+	}
+
+	var user *ent.User
+	user, err = u.repo.Activate(ctx, userID)
+	return user, err
+}
+
+func (u *UserUsecase) Deactivate(ctx context.Context, userID int) (*ent.User, error) {
+	method := `deactivate`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	if userID <= 0 {
+		return nil, fmt.Errorf("user id must be positive integer, get %d", userID)
+	}
+
+	var user *ent.User
+	user, err = u.repo.Deactivate(ctx, userID)
 	return user, err
 }

@@ -2,19 +2,22 @@ package service
 
 import (
 	"context"
-	"net/http"
 
 	authV1 "auth/api/auth/v1"
 	"auth/ent"
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+	"auth/internal/pkg/strings"
 
 	"github.com/AlekSi/pointer"
-	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	metricPrefixAuth = `service.auth`
 )
 
 type AuthService struct {
@@ -36,14 +39,24 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) Check(ctx context.Context, req *authV1.CheckRequest) (*authV1.CheckResponse, error) {
-	dto, err := s.usecase.Check(ctx, req.Token)
+func (a *AuthService) postProcess(ctx context.Context, method string, err error) {
+	if err != nil {
+		a.logger.WithContext(ctx).Errorf(`auth service method "%s" failed: %v`, method, err)
+		a.metric.Increment(strings.Metric(metricPrefixAuth, method, `failure`))
+	} else {
+		a.metric.Increment(strings.Metric(metricPrefixAuth, method, `success`))
+	}
+}
+
+func (a *AuthService) Check(ctx context.Context, req *authV1.CheckRequest) (*authV1.CheckResponse, error) {
+	method := `check`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
+	var err error
+	defer func() { a.postProcess(ctx, method, err) }()
+
+	dto, err := a.usecase.Check(ctx, req.Token)
 	if ent.IsNotFound(err) {
-		return nil, errors.New(
-			http.StatusNotFound,
-			`NOT_FOUND`,
-			`session not found or expired`,
-		) // TODO change to generated error
+		err = authV1.ErrorNotFound(err.Error())
 	}
 	if err != nil {
 		return nil, err
@@ -65,17 +78,33 @@ func (s *AuthService) Check(ctx context.Context, req *authV1.CheckRequest) (*aut
 	}, nil
 }
 
-func (s *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*authV1.LoginResponse, error) {
+func (a *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*authV1.LoginResponse, error) {
+	method := `login`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
+	var err error
+	defer func() { a.postProcess(ctx, method, err) }()
+
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
 	}
 
-	dto, err := s.usecase.MakeLoginDTOFromLoginRequest(req)
+	dto, err := a.usecase.MakeLoginDTOFromLoginRequest(req)
 	if err != nil {
+		err = authV1.ErrorValidationFailed(err.Error())
 		return nil, err
 	}
 
-	token, expiredAt, err := s.usecase.Login(ctx, dto)
+	token, expiredAt, err := a.usecase.Login(ctx, dto)
+	switch err {
+	case biz.ErrLoginTooOften:
+		err = authV1.ErrorTooOften(err.Error())
+	case biz.ErrWrongPassword:
+		err = authV1.ErrorWrongInput(err.Error())
+	default:
+		if err != nil {
+			err = authV1.ErrorInternalError(err.Error())
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -86,17 +115,33 @@ func (s *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*aut
 	}, nil
 }
 
-func (s *AuthService) LoginByCode(ctx context.Context, req *authV1.LoginByCodeRequest) (*authV1.LoginResponse, error) {
+func (a *AuthService) LoginByCode(ctx context.Context, req *authV1.LoginByCodeRequest) (*authV1.LoginResponse, error) {
+	method := `loginByCode`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
+	var err error
+	defer func() { a.postProcess(ctx, method, err) }()
+
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
 	}
 
-	dto, err := s.usecase.MakeLoginByCodeFromLoginByCodeRequest(req)
+	dto, err := a.usecase.MakeLoginByCodeFromLoginByCodeRequest(req)
 	if err != nil {
+		err = authV1.ErrorValidationFailed(err.Error())
 		return nil, err
 	}
 
-	token, expiredAt, err := s.usecase.LoginByCode(ctx, dto)
+	token, expiredAt, err := a.usecase.LoginByCode(ctx, dto)
+	switch err {
+	case biz.ErrLoginByCodeTooOften:
+		err = authV1.ErrorTooOften(err.Error())
+	case biz.ErrWrongCode:
+		err = authV1.ErrorWrongInput(err.Error())
+	default:
+		if err != nil {
+			err = authV1.ErrorInternalError(err.Error())
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -107,20 +152,31 @@ func (s *AuthService) LoginByCode(ctx context.Context, req *authV1.LoginByCodeRe
 	}, nil
 }
 
-func (s *AuthService) ResetPassword(ctx context.Context, req *authV1.ResetPasswordRequest) (
+func (a *AuthService) ResetPassword(ctx context.Context, req *authV1.ResetPasswordRequest) (
 	*authV1.AuthNothing,
 	error,
 ) {
+	method := `resetPassword`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
+	var err error
+	defer func() { a.postProcess(ctx, method, err) }()
+
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
 	}
 
-	dto, err := s.usecase.MakeResetPasswordDTO(req)
+	dto, err := a.usecase.MakeResetPasswordDTO(req)
 	if err != nil {
+		err = authV1.ErrorValidationFailed(err.Error())
 		return nil, err
 	}
 
-	err = s.usecase.ResetPassword(ctx, dto)
+	err = a.usecase.ResetPassword(ctx, dto)
+	if err == biz.ErrResetPasswordTooOften {
+		err = authV1.ErrorTooOften(err.Error())
+	} else if err != nil {
+		err = authV1.ErrorInternalError(err.Error())
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -128,17 +184,33 @@ func (s *AuthService) ResetPassword(ctx context.Context, req *authV1.ResetPasswo
 	return &authV1.AuthNothing{}, nil
 }
 
-func (s *AuthService) NewPassword(ctx context.Context, req *authV1.NewPasswordRequest) (*authV1.AuthNothing, error) {
+func (a *AuthService) NewPassword(ctx context.Context, req *authV1.NewPasswordRequest) (*authV1.AuthNothing, error) {
+	method := `newPassword`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
+	var err error
+	defer func() { a.postProcess(ctx, method, err) }()
+
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
 	}
 
-	dto, err := s.usecase.MakeNewPasswordDTO(req)
+	dto, err := a.usecase.MakeNewPasswordDTO(req)
 	if err != nil {
+		err = authV1.ErrorValidationFailed(err.Error())
 		return nil, err
 	}
 
-	err = s.usecase.NewPassword(ctx, dto)
+	err = a.usecase.NewPassword(ctx, dto)
+	switch err {
+	case biz.ErrNewPasswordTooOften:
+		err = authV1.ErrorTooOften(err.Error())
+	case biz.ErrWrongResetHash:
+		err = authV1.ErrorWrongInput(err.Error())
+	default:
+		if err != nil {
+			err = authV1.ErrorInternalError(err.Error())
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -146,20 +218,36 @@ func (s *AuthService) NewPassword(ctx context.Context, req *authV1.NewPasswordRe
 	return &authV1.AuthNothing{}, nil
 }
 
-func (s *AuthService) ChangePassword(ctx context.Context, req *authV1.ChangePasswordRequest) (
+func (a *AuthService) ChangePassword(ctx context.Context, req *authV1.ChangePasswordRequest) (
 	*authV1.AuthNothing,
 	error,
 ) {
+	method := `changePassword`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
+	var err error
+	defer func() { a.postProcess(ctx, method, err) }()
+
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
 	}
 
-	dto, err := s.usecase.MakeChangePasswordDTO(req)
+	dto, err := a.usecase.MakeChangePasswordDTO(req)
 	if err != nil {
+		err = authV1.ErrorValidationFailed(err.Error())
 		return nil, err
 	}
 
-	err = s.usecase.ChangePassword(ctx, dto)
+	err = a.usecase.ChangePassword(ctx, dto)
+	switch err {
+	case biz.ErrChangePasswordTooOften:
+		err = authV1.ErrorTooOften(err.Error())
+	case biz.ErrWrongOldPassword:
+		err = authV1.ErrorWrongInput(err.Error())
+	default:
+		if err != nil {
+			err = authV1.ErrorInternalError(err.Error())
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -167,22 +255,30 @@ func (s *AuthService) ChangePassword(ctx context.Context, req *authV1.ChangePass
 	return &authV1.AuthNothing{}, nil
 }
 
-func (s *AuthService) GenerateCode(ctx context.Context, req *authV1.GenerateCodeRequest) (
+func (a *AuthService) GenerateCode(ctx context.Context, req *authV1.GenerateCodeRequest) (
 	*authV1.AuthNothing,
 	error,
 ) {
+	method := `generateCode`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
+	var err error
+	defer func() { a.postProcess(ctx, method, err) }()
+
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
 	}
 
-	dto, err := s.usecase.MakeGenerateCodeDTO(req)
+	dto, err := a.usecase.MakeGenerateCodeDTO(req)
 	if err != nil {
+		err = authV1.ErrorValidationFailed(err.Error())
 		return nil, err
 	}
 
-	err = s.usecase.GenerateCode(ctx, dto)
-	if err == biz.ErrGenerateCodeTooOften { // TODO MAKE ALL BIZ LOGIC ERROR PROCESSING WITH REASONS
-		return nil, errors.New(http.StatusBadRequest, `generate_code_too_often`, err.Error())
+	err = a.usecase.GenerateCode(ctx, dto)
+	if err == biz.ErrGenerateCodeTooOften {
+		err = authV1.ErrorTooOften(err.Error())
+	} else if err != nil {
+		err = authV1.ErrorInternalError(err.Error())
 	}
 	if err != nil {
 		return nil, err
@@ -191,18 +287,25 @@ func (s *AuthService) GenerateCode(ctx context.Context, req *authV1.GenerateCode
 	return &authV1.AuthNothing{}, nil
 }
 
-func (s *AuthService) History(ctx context.Context, req *authV1.HistoryRequest) (*authV1.HistoryResponse, error) {
+func (a *AuthService) History(ctx context.Context, req *authV1.HistoryRequest) (*authV1.HistoryResponse, error) {
+	method := `history`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
+	var err error
+	defer func() { a.postProcess(ctx, method, err) }()
+
 	resp := &authV1.HistoryResponse{
 		Items: make([]*authV1.HistoryItem, 0),
 	}
 
-	dto, err := s.usecase.MakeHistoryDTO(req)
+	dto, err := a.usecase.MakeHistoryDTO(req)
 	if err != nil {
+		err = authV1.ErrorValidationFailed(err.Error())
 		return nil, err
 	}
 
-	items, err := s.usecase.History(ctx, dto)
+	items, err := a.usecase.History(ctx, dto)
 	if err != nil {
+		err = authV1.ErrorInternalError(err.Error())
 		return nil, err
 	}
 

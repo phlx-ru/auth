@@ -36,4 +36,6 @@ type UserRepo interface {
 	FindByID(ctx context.Context, id int) (*ent.User, error)
 	FindByEmail(ctx context.Context, email string) (*ent.User, error)
 	FindByPhone(ctx context.Context, phone string) (*ent.User, error)
+	Activate(ctx context.Context, userID int) (*ent.User, error)
+	Deactivate(ctx context.Context, userID int) (*ent.User, error)
 }
