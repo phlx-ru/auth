@@ -5,14 +5,9 @@ import (
 	"flag"
 	"os"
 	"path"
+	"time"
 
-	"auth/internal/clients"
-	"auth/internal/conf"
-	pkgConfig "auth/internal/pkg/config"
-	"auth/internal/pkg/logger"
-	"auth/internal/pkg/metrics"
-	"auth/internal/pkg/runtime"
-
+	"github.com/getsentry/sentry-go"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
@@ -20,12 +15,19 @@ import (
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/joho/godotenv"
+
+	"auth/internal/clients"
+	"auth/internal/conf"
+	pkgConfig "auth/internal/pkg/config"
+	"auth/internal/pkg/logger"
+	"auth/internal/pkg/metrics"
+	"auth/internal/pkg/runtime"
 )
 
 // go build -ldflags "-X main.Version=x.y.z"
 var (
 	// Name is the name of the compiled software.
-	Name = `auth_server`
+	Name = `auth-server`
 	// Version is the version of the compiled software.
 	Version = `1.1.1`
 	// flagconf is the config flag.
@@ -56,6 +58,20 @@ func newApp(ctx context.Context, logger log.Logger, gs *grpc.Server, hs *http.Se
 	)
 }
 
+func initSentry(dsn, env string) (flush func(), err error) {
+	err = sentry.Init(sentry.ClientOptions{
+		Dsn:              dsn,
+		Environment:      env,
+		TracesSampleRate: 1.0,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return func() {
+		sentry.Flush(2 * time.Second)
+	}, nil
+}
+
 func main() {
 	if err := run(); err != nil {
 		panic(err)
@@ -67,7 +83,8 @@ func run() error {
 
 	var err error
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	envPath := path.Join(flagconf, dotenv)
 	err = godotenv.Overload(envPath)
@@ -92,6 +109,14 @@ func run() error {
 	var bc conf.Bootstrap
 	if err = c.Scan(&bc); err != nil {
 		return err
+	}
+
+	if bc.Sentry.Dsn != "" {
+		flush, errSentry := initSentry(bc.Sentry.Dsn, bc.Env)
+		if errSentry != nil {
+			return errSentry
+		}
+		defer flush()
 	}
 
 	logs := logger.New(id, Name, Version, bc.Log.Level)
@@ -125,7 +150,7 @@ func run() error {
 
 	app, err := wireApp(ctx, database, bc.Auth, bc.Server, notificationsClient, metric, logs)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// start and wait for stop signal

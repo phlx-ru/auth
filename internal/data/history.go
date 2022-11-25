@@ -11,44 +11,53 @@ import (
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+	"auth/internal/pkg/strings"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
-const (
-	metricHistorySaveTimings               = `data.history.save.timings`
-	metricHistoryFindLastUserEventsTimings = `data.history.findLastUserEvents.timings`
-	metricHistoryFindUserEventsTimings     = `data.history.findUserEvents.timings`
-	metricHistoryTransactionTimings        = `data.history.transaction.timings`
-)
-
 type historyRepo struct {
 	data   Database
 	metric metrics.Metrics
-	logs   *log.Helper
+	logger *log.Helper
 }
 
 func NewHistoryRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.HistoryRepo {
 	return &historyRepo{
 		data:   data,
 		metric: metric,
-		logs:   logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/history`),
+		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/history`),
+	}
+}
+
+func (h *historyRepo) postProcess(ctx context.Context, method string, err error) {
+	if err != nil {
+		h.logger.WithContext(ctx).Errorf(`history data method "%s" failed: %v`, method, err)
+		h.metric.Increment(strings.Metric(metricPrefix, method, `failure`))
+	} else {
+		h.metric.Increment(strings.Metric(metricPrefix, method, `success`))
 	}
 }
 
 func (h *historyRepo) Create(ctx context.Context, history *ent.History) (*ent.History, error) {
-	defer h.metric.NewTiming().Send(metricHistorySaveTimings)
+	method := `create`
+	defer h.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { h.postProcess(ctx, method, err) }()
+
 	if history == nil {
-		return nil, errors.New("code is empty")
+		err = errors.New("code is empty")
+		return nil, err
 	}
 
-	return h.client(ctx).Create().
+	history, err = h.client(ctx).Create().
 		SetUserID(history.UserID).
 		SetEvent(history.Event).
 		SetNillableIP(history.IP).
 		SetNillableUserAgent(history.UserAgent).
 		Save(ctx)
+	return history, err
 }
 
 func (h *historyRepo) FindLastUserEvents(
@@ -57,47 +66,66 @@ func (h *historyRepo) FindLastUserEvents(
 	types []string,
 	interval time.Duration,
 ) ([]*ent.History, error) {
-	defer h.metric.NewTiming().Send(metricHistoryFindLastUserEventsTimings)
+	method := `findLastUserEvents`
+	defer h.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { h.postProcess(ctx, method, err) }()
+
 	if userID <= 0 {
-		return nil, errors.New("userID must be greater than 0")
+		err = errors.New("userID must be greater than 0")
 	}
 	if len(types) == 0 {
-		return nil, errors.New("types is empty")
+		err = errors.New("types is empty")
 	}
 	if interval <= 0 {
-		return nil, errors.New("interval must be greater than 0")
+		err = errors.New("interval must be greater than 0")
+	}
+	if err != nil {
+		return nil, err
 	}
 
+	var histories []*ent.History
 	actualTime := time.Now()
-	return h.client(ctx).Query().
+	histories, err = h.client(ctx).Query().
 		Where(historyFilterByUserID(userID)).
 		Where(historyFilterByTypes(types)).
 		Where(historyFilterByLastInterval(interval, actualTime)).
 		All(ctx)
+	return histories, err
 }
 
 func (h *historyRepo) FindUserEvents(ctx context.Context, userID, limit, offset int) ([]*ent.History, error) {
-	defer h.metric.NewTiming().Send(metricHistoryFindUserEventsTimings)
+	method := `findUserEvents`
+	defer h.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { h.postProcess(ctx, method, err) }()
+
 	if userID <= 0 {
-		return nil, errors.New("userID must be greater than 0")
+		err = errors.New("userID must be greater than 0")
 	}
 	if limit <= 0 {
-		return nil, errors.New("limit must be greater than 0")
+		err = errors.New("limit must be greater than 0")
 	}
 	if limit > 1000 {
-		return nil, errors.New("limit must be less or equal than 1000")
+		err = errors.New("limit must be less or equal than 1000")
 	}
 	if offset < 0 {
-		return nil, errors.New("offset must be greater or equal than 0")
+		err = errors.New("offset must be greater or equal than 0")
 	}
 	if offset > 10000 {
-		return nil, errors.New("offset must be less or equal than 10000")
+		err = errors.New("offset must be less or equal than 10000")
 	}
-	return h.client(ctx).Query().
+	if err != nil {
+		return nil, err
+	}
+
+	var histories []*ent.History
+	histories, err = h.client(ctx).Query().
 		Where(historyFilterByUserID(userID)).
 		Offset(offset).
 		Limit(limit).
 		All(ctx)
+	return histories, err
 }
 
 func (h *historyRepo) Transaction(
@@ -105,8 +133,13 @@ func (h *historyRepo) Transaction(
 	txOptions *databaseSql.TxOptions,
 	processes ...func(repoCtx context.Context) error,
 ) error {
-	defer h.metric.NewTiming().Send(metricHistoryTransactionTimings)
-	return transaction(h.data, h.logs)(ctx, txOptions, processes...)
+	method := `transaction`
+	defer h.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { h.postProcess(ctx, method, err) }()
+
+	err = transaction(h.data, h.logger)(ctx, txOptions, processes...)
+	return err
 }
 
 func (h *historyRepo) client(ctx context.Context) *ent.HistoryClient {

@@ -1,5 +1,8 @@
+env: ${ENV:local}
 log:
   level: ${LOG_LEVEL:debug} # vendor/github.com/go-kratos/kratos/v2/log/level.go
+sentry:
+  dsn: ${SENTRY_DSN:""}
 metrics:
   address: ${METRICS_ADDRESS:localhost:8125}
   mute: ${METRICS_MUTE:true}

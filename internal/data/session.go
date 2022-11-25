@@ -12,39 +12,47 @@ import (
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+	pkgStrings "auth/internal/pkg/strings"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
-const (
-	metricSessionSaveTimings          = `data.session.save.timings`
-	metricSessionUpdateTimings        = `data.session.update.timings`
-	metricSessionFindByUserIDTimings  = `data.session.findByUserId.timings`
-	metricSessionFindByTokenIDTimings = `data.session.findByToken.timings`
-)
-
 type sessionRepo struct {
 	data   Database
 	metric metrics.Metrics
-	logs   *log.Helper
+	logger *log.Helper
 }
 
 func NewSessionRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.SessionRepo {
 	return &sessionRepo{
 		data:   data,
 		metric: metric,
-		logs:   logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/user`),
+		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/user`),
+	}
+}
+
+func (s *sessionRepo) postProcess(ctx context.Context, method string, err error) {
+	if err != nil {
+		s.logger.WithContext(ctx).Errorf(`session data method "%s" failed: %v`, method, err)
+		s.metric.Increment(pkgStrings.Metric(metricPrefix, method, `failure`))
+	} else {
+		s.metric.Increment(pkgStrings.Metric(metricPrefix, method, `success`))
 	}
 }
 
 func (s *sessionRepo) Create(ctx context.Context, session *ent.Session) (*ent.Session, error) {
-	defer s.metric.NewTiming().Send(metricSessionSaveTimings)
+	method := `create` // nolint: goconst
+	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { s.postProcess(ctx, method, err) }()
+
 	if session == nil {
-		return nil, errors.New(`session is empty`)
+		err = errors.New(`session is empty`)
+		return nil, err
 	}
 
-	return s.client(ctx).Create().
+	session, err = s.client(ctx).Create().
 		SetUserID(session.UserID).
 		SetToken(session.Token).
 		SetIP(session.IP).
@@ -53,12 +61,18 @@ func (s *sessionRepo) Create(ctx context.Context, session *ent.Session) (*ent.Se
 		SetExpiredAt(session.ExpiredAt).
 		SetIsActive(session.IsActive).
 		Save(ctx)
+	return session, err
 }
 
 func (s *sessionRepo) Update(ctx context.Context, session *ent.Session) (*ent.Session, error) {
-	defer s.metric.NewTiming().Send(metricSessionUpdateTimings)
+	method := `update` // nolint: goconst
+	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { s.postProcess(ctx, method, err) }()
+
 	if session == nil {
-		return nil, errors.New(`session is empty`)
+		err = errors.New(`session is empty`)
+		return nil, err
 	}
 
 	updated := s.client(ctx).UpdateOne(session).
@@ -75,37 +89,47 @@ func (s *sessionRepo) Update(ctx context.Context, session *ent.Session) (*ent.Se
 		updated.ClearDeviceID()
 	}
 
-	return updated.Save(ctx)
+	session, err = updated.Save(ctx)
+	return session, err
 }
 
 func (s *sessionRepo) FindByUserID(ctx context.Context, userID int) (*ent.Session, error) {
-	defer s.metric.NewTiming().Send(metricSessionFindByUserIDTimings)
-	if userID <= 0 {
-		return nil, errors.New(`userID is incorrect`)
-	}
+	method := `findByUserID`
+	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { s.postProcess(ctx, method, err) }()
 
+	var session *ent.Session
 	actualTime := time.Now()
-	return s.client(ctx).Query().
+	session, err = s.client(ctx).Query().
 		Where(sessionFilterByUserID(userID)).
 		Where(sessionFilterNotExpired(actualTime)).
 		Where(sessionFilterByIsActive(true)).
 		Order(sessionOrderByCreatedAt(`desc`)).
 		First(ctx)
+	return session, err
 }
 
 func (s *sessionRepo) FindByToken(ctx context.Context, token string) (*ent.Session, error) {
-	defer s.metric.NewTiming().Send(metricSessionFindByTokenIDTimings)
+	method := `findByToken`
+	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { s.postProcess(ctx, method, err) }()
+
 	if token == "" {
-		return nil, errors.New(`token is empty`)
+		err = errors.New(`token is empty`)
+		return nil, err
 	}
 
+	var session *ent.Session
 	actualTime := time.Now()
-	return s.client(ctx).Query().
+	session, err = s.client(ctx).Query().
 		Where(sessionFilterByToken(token)).
 		Where(sessionFilterNotExpired(actualTime)).
 		Where(sessionFilterByIsActive(true)).
 		Order(sessionOrderByCreatedAt(`desc`)).
 		First(ctx)
+	return session, err
 }
 
 func (s *sessionRepo) Transaction(
@@ -113,8 +137,13 @@ func (s *sessionRepo) Transaction(
 	txOptions *databaseSql.TxOptions,
 	processes ...func(repoCtx context.Context) error,
 ) error {
-	defer s.metric.NewTiming().Send(metricUserTransactionTimings)
-	return transaction(s.data, s.logs)(ctx, txOptions, processes...)
+	method := `transaction`
+	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { s.postProcess(ctx, method, err) }()
+
+	err = transaction(s.data, s.logger)(ctx, txOptions, processes...)
+	return err
 }
 
 func (s *sessionRepo) client(ctx context.Context) *ent.SessionClient {

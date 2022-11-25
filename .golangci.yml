@@ -34,15 +34,11 @@ linters:
     - gocritic
     - govet
     - errcheck
-    - deadcode
-    - varcheck
     - ineffassign
     - typecheck
-    - goconst
     - gosec
     - goimports
     - gosimple
-    - unused
     - unparam
     - goconst
     - exportloopref
@@ -51,7 +47,6 @@ linters:
     - prealloc
     - unconvert
     - unused
-    - deadcode
     - nakedret
     - staticcheck
 

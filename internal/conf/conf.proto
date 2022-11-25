@@ -6,16 +6,26 @@ option go_package = "auth/internal/conf;conf";
 import "google/protobuf/duration.proto";
 
 message Bootstrap {
-  Log log = 1;
-  Metrics metrics = 2;
-  Server server = 3;
-  Data data = 4;
-  Auth auth = 5;
-  Client client = 6;
+  string env = 1;
+  Log log = 2;
+  Sentry sentry = 3;
+  Metrics metrics = 4;
+  Server server = 5;
+  Data data = 6;
+  Auth auth = 7;
+  Client client = 8;
+}
+
+message Jaeger {
+  string url = 1;
 }
 
 message Log {
   string level = 1;
+}
+
+message Sentry {
+  string dsn = 1;
 }
 
 message Metrics {
