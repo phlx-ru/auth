@@ -4,47 +4,58 @@ import (
 	"context"
 	databaseSql "database/sql"
 	"errors"
+	"time"
 
 	"auth/ent"
 	"auth/ent/predicate"
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+	"auth/internal/pkg/strings"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
 const (
-	metricUserSaveTimings        = `data.user.save.timings`
-	metricUserUpdateTimings      = `data.user.update.timings`
-	metricUserFindByIDTimings    = `data.user.findById.timings`
-	metricUserFindByEmailTimings = `data.user.findByEmail.timings`
-	metricUserFindByPhoneTimings = `data.user.findByPhone.timings`
-	metricUserTransactionTimings = `data.user.transaction.timings`
+	metricPrefix = `data.user`
 )
 
 type userRepo struct {
 	data   Database
 	metric metrics.Metrics
-	logs   *log.Helper
+	logger *log.Helper
 }
 
 func NewUserRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.UserRepo {
 	return &userRepo{
 		data:   data,
 		metric: metric,
-		logs:   logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/user`),
+		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/user`),
+	}
+}
+
+func (u *userRepo) postProcess(ctx context.Context, method string, err error) {
+	if err != nil {
+		u.logger.WithContext(ctx).Errorf(`user data method "%s" failed: %v`, method, err)
+		u.metric.Increment(strings.Metric(metricPrefix, method, `failure`))
+	} else {
+		u.metric.Increment(strings.Metric(metricPrefix, method, `success`))
 	}
 }
 
 func (u *userRepo) Create(ctx context.Context, user *ent.User) (*ent.User, error) {
-	defer u.metric.NewTiming().Send(metricUserSaveTimings)
+	method := `create`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
 	if user == nil {
-		return nil, errors.New("user is empty")
+		err = errors.New("user is empty")
+		return nil, err
 	}
 
-	return u.client(ctx).Create().
+	user, err = u.client(ctx).Create().
 		SetDisplayName(user.DisplayName).
 		SetType(user.Type).
 		SetNillableEmail(user.Email).
@@ -55,13 +66,20 @@ func (u *userRepo) Create(ctx context.Context, user *ent.User) (*ent.User, error
 		SetNillablePasswordResetExpiredAt(user.PasswordResetExpiredAt).
 		SetNillableDeactivatedAt(user.DeactivatedAt).
 		Save(ctx)
+
+	return user, err
 }
 
 // Update all fields of user record. CAUTION: if field in 'user' not set — it will be cleared
 func (u *userRepo) Update(ctx context.Context, user *ent.User) (*ent.User, error) {
-	defer u.metric.NewTiming().Send(metricUserUpdateTimings)
+	method := `update`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
 	if user == nil {
-		return nil, errors.New("user is empty")
+		err = errors.New("user is empty")
+		return nil, err
 	}
 
 	updated := u.client(ctx).UpdateOne(user).
@@ -110,28 +128,69 @@ func (u *userRepo) Update(ctx context.Context, user *ent.User) (*ent.User, error
 		updated.ClearPasswordResetExpiredAt()
 	}
 
-	return updated.Save(ctx)
+	user, err = updated.Save(ctx)
+	return user, err
+}
+
+func (u *userRepo) Activate(ctx context.Context, userID int) (*ent.User, error) {
+	method := `activate`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	var user *ent.User
+	user, err = u.client(ctx).UpdateOneID(userID).ClearDeactivatedAt().Save(ctx)
+	return user, err
+}
+
+func (u *userRepo) Deactivate(ctx context.Context, userID int) (*ent.User, error) {
+	method := `deactivate`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	var user *ent.User
+	user, err = u.client(ctx).UpdateOneID(userID).SetDeactivatedAt(time.Now()).Save(ctx)
+	return user, err
 }
 
 func (u *userRepo) FindByID(ctx context.Context, id int) (*ent.User, error) {
-	defer u.metric.NewTiming().Send(metricUserFindByIDTimings)
-	return u.client(ctx).Get(ctx, id)
+	method := `findByID`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	var user *ent.User
+	user, err = u.client(ctx).Get(ctx, id)
+	return user, err
 }
 
 func (u *userRepo) FindByEmail(ctx context.Context, email string) (*ent.User, error) {
-	defer u.metric.NewTiming().Send(metricUserFindByEmailTimings)
-	return u.client(ctx).Query().
+	method := `findByEmail`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	var user *ent.User
+	user, err = u.client(ctx).Query().
 		Where(userFilterActive()).
 		Where(userFilterByEmail(email)).
 		Only(ctx)
+	return user, err
 }
 
 func (u *userRepo) FindByPhone(ctx context.Context, phone string) (*ent.User, error) {
-	defer u.metric.NewTiming().Send(metricUserFindByPhoneTimings)
-	return u.client(ctx).Query().
+	method := `findByPhone`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	var user *ent.User
+	user, err = u.client(ctx).Query().
 		Where(userFilterActive()).
 		Where(userFilterByPhone(phone)).
 		Only(ctx)
+	return user, err
 }
 
 func (u *userRepo) Transaction(
@@ -139,8 +198,13 @@ func (u *userRepo) Transaction(
 	txOptions *databaseSql.TxOptions,
 	processes ...func(repoCtx context.Context) error,
 ) error {
-	defer u.metric.NewTiming().Send(metricUserTransactionTimings)
-	return transaction(u.data, u.logs)(ctx, txOptions, processes...)
+	method := `transaction`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	err = transaction(u.data, u.logger)(ctx, txOptions, processes...)
+	return err
 }
 
 func (u *userRepo) client(ctx context.Context) *ent.UserClient {

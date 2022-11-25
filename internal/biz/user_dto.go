@@ -16,9 +16,9 @@ import (
 type UserAddDTO struct {
 	DisplayName    string `validate:"required,min=3,max=255"`
 	Type           string `validate:"required,user_type"`
-	Phone          string `validate:"required_without=email,min=10,numeric,startswith=9"`
-	Email          string `validate:"required_without=phone,email"`
-	TelegramChatID string `validate:"required_without=email,numeric"`
+	Phone          string `validate:"required_without=Email,omitempty,min=10,numeric,startswith=9"`
+	Email          string `validate:"required_without=Phone,omitempty,email"`
+	TelegramChatID string `validate:"required_without=Email,omitempty,numeric"`
 	PasswordHash   string `validate:"required,min=8,max=255"`
 	DeactivatedAt  *time.Time
 }
@@ -55,12 +55,12 @@ func (u *UserUsecase) MakeUserAddDTO(a *v1.AddRequest) (*UserAddDTO, error) {
 
 type UserEditDTO struct {
 	ID             int     `validate:"required,min:1"`
-	DisplayName    *string `validate:"min=3,max=255"`
-	Type           *string `validate:"user_type"`
-	Phone          *string `validate:"min=10,numeric,startswith=9"`
-	Email          *string `validate:"email"`
-	TelegramChatID *string `validate:"numeric"`
-	PasswordHash   *string `validate:"min=8,max=256"`
+	DisplayName    *string `validate:"omitempty,min=3,max=255"`
+	Type           *string `validate:"omitempty,user_type"`
+	Phone          *string `validate:"omitempty,min=10,numeric,startswith=9"`
+	Email          *string `validate:"omitempty,email"`
+	TelegramChatID *string `validate:"omitempty,numeric"`
+	PasswordHash   *string `validate:"omitempty,min=8,max=256"`
 }
 
 func (u *UserUsecase) MakeUserEditDTO(e *v1.EditRequest) (*UserEditDTO, error) {
@@ -101,4 +101,46 @@ func (u *UserUsecase) MakeUserEditDTO(e *v1.EditRequest) (*UserEditDTO, error) {
 		dto.TelegramChatID = pointer.ToString("")
 	}
 	return dto, nil
+}
+
+type UserActivateDTO struct {
+	ID int `validate:"required,min:1"`
+}
+
+func (u *UserUsecase) MakeUserActivateDTO(e *v1.ActivateRequest) (*UserActivateDTO, error) {
+	if e == nil {
+		return nil, errors.New(`activateRequest is empty`)
+	}
+	id, err := strconv.ParseInt(e.Id, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	dto := &UserActivateDTO{
+		ID: int(id),
+	}
+	if err = validate.Default(dto); err != nil {
+		return nil, err
+	}
+	return dto, err
+}
+
+type UserDeactivateDTO struct {
+	ID int `validate:"required,min:1"`
+}
+
+func (u *UserUsecase) MakeUserDeactivateDTO(e *v1.DeactivateRequest) (*UserDeactivateDTO, error) {
+	if e == nil {
+		return nil, errors.New(`deactivateRequest is empty`)
+	}
+	id, err := strconv.ParseInt(e.Id, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	dto := &UserDeactivateDTO{
+		ID: int(id),
+	}
+	if err = validate.Default(dto); err != nil {
+		return nil, err
+	}
+	return dto, err
 }

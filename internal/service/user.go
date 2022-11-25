@@ -4,27 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	v1 "auth/api/auth/v1"
+	authV1 "auth/api/auth/v1"
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
+	"auth/internal/pkg/strings"
 
-	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
 const (
-	ErrorReasonCommon = `COMMON`
-
-	metricUserAddTimings = `service.user.add.timings`
-	metricUserAddSuccess = `service.user.add.success`
-	metricUserAddFailure = `service.user.add.failure`
+	metricPrefixUser = `service.user`
 )
 
-// TODO Make custom errors instead of ErrorReasonCommon
-
 type UserService struct {
-	v1.UnimplementedUserServer
+	authV1.UnimplementedUserServer
 
 	usecase *biz.UserUsecase
 
@@ -41,36 +35,81 @@ func NewUserService(usecase *biz.UserUsecase, metric metrics.Metrics, logs log.L
 	}
 }
 
-func (s *UserService) Add(ctx context.Context, req *v1.AddRequest) (*v1.AddResponse, error) {
-	defer s.metric.NewTiming().Send(metricUserAddTimings)
+func (u *UserService) postProcess(ctx context.Context, method string, err error) {
+	if err != nil {
+		u.logger.WithContext(ctx).Errorf(`user service method "%s" failed: %v`, method, err)
+		u.metric.Increment(strings.Metric(metricPrefixUser, method, `failure`))
+	} else {
+		u.metric.Increment(strings.Metric(metricPrefixUser, method, `success`))
+	}
+}
+
+func (u *UserService) Add(ctx context.Context, req *authV1.AddRequest) (*authV1.AddResponse, error) {
+	method := `add`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
 	var err error
-	defer func() {
-		if err != nil {
-			s.logger.WithContext(ctx).Error(fmt.Sprintf("failed to add user: %v", err))
-			s.metric.Increment(metricUserAddFailure)
-		} else {
-			s.metric.Increment(metricUserAddSuccess)
-		}
-	}()
-	addDTO, err := s.usecase.MakeUserAddDTO(req)
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	addDTO, err := u.usecase.MakeUserAddDTO(req)
 	if err != nil {
-		return nil, err
+		return nil, authV1.ErrorValidationFailed(err.Error())
 	}
-	user, err := s.usecase.Add(ctx, addDTO)
+	user, err := u.usecase.Add(ctx, addDTO)
 	if err != nil {
-		return nil, errors.InternalServer(ErrorReasonCommon, err.Error())
+		return nil, authV1.ErrorInternalError(err.Error())
 	}
-	return &v1.AddResponse{
+	return &authV1.AddResponse{
 		Id: fmt.Sprintf(`%d`, user.ID),
 	}, nil
 }
 
-func (s *UserService) Edit(ctx context.Context, req *v1.EditRequest) (*v1.UserNothing, error) {
-	return &v1.UserNothing{}, nil
+func (u *UserService) Edit(ctx context.Context, req *authV1.EditRequest) (*authV1.UserNothing, error) {
+	method := `edit`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	editDTO, err := u.usecase.MakeUserEditDTO(req)
+	if err != nil {
+		return nil, authV1.ErrorValidationFailed(err.Error())
+	}
+	_, err = u.usecase.Edit(ctx, editDTO)
+	if err != nil {
+		return nil, authV1.ErrorInternalError(err.Error())
+	}
+	return &authV1.UserNothing{}, nil
 }
-func (s *UserService) Activate(ctx context.Context, req *v1.ActivateRequest) (*v1.UserNothing, error) {
-	return &v1.UserNothing{}, nil
+
+func (u *UserService) Activate(ctx context.Context, req *authV1.ActivateRequest) (*authV1.UserNothing, error) {
+	method := `activate`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	activateDTO, err := u.usecase.MakeUserActivateDTO(req)
+	if err != nil {
+		return nil, authV1.ErrorValidationFailed(err.Error())
+	}
+	_, err = u.usecase.Activate(ctx, activateDTO.ID)
+	if err != nil {
+		return nil, authV1.ErrorInternalError(err.Error())
+	}
+	return &authV1.UserNothing{}, nil
 }
-func (s *UserService) Deactivate(ctx context.Context, req *v1.DeactivateRequest) (*v1.UserNothing, error) {
-	return &v1.UserNothing{}, nil
+
+func (u *UserService) Deactivate(ctx context.Context, req *authV1.DeactivateRequest) (*authV1.UserNothing, error) {
+	method := `deactivate`
+	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
+	var err error
+	defer func() { u.postProcess(ctx, method, err) }()
+
+	deactivateDTO, err := u.usecase.MakeUserDeactivateDTO(req)
+	if err != nil {
+		return nil, authV1.ErrorValidationFailed(err.Error())
+	}
+	_, err = u.usecase.Deactivate(ctx, deactivateDTO.ID)
+	if err != nil {
+		return nil, authV1.ErrorInternalError(err.Error())
+	}
+	return &authV1.UserNothing{}, nil
 }

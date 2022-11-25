@@ -12,6 +12,7 @@ import (
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
 	"auth/internal/pkg/secrets"
+	"auth/internal/pkg/strings"
 	"auth/internal/pkg/texts"
 
 	"github.com/AlekSi/pointer"
@@ -42,37 +43,7 @@ const (
 	generateCodeAgainCount      = 1
 	generateCodeAgainInterval   = 2 * time.Minute
 
-	metricAuthCheckSuccess = `biz.auth.check.success`
-	metricAuthCheckFailure = `biz.auth.check.failure`
-	metricAuthCheckTimings = `biz.auth.check.timings`
-
-	metricAuthLoginSuccess = `biz.auth.login.success`
-	metricAuthLoginFailure = `biz.auth.login.failure`
-	metricAuthLoginTimings = `biz.auth.login.timings`
-
-	metricAuthLoginByCodeSuccess = `biz.auth.loginByCode.success`
-	metricAuthLoginByCodeFailure = `biz.auth.loginByCode.failure`
-	metricAuthLoginByCodeTimings = `biz.auth.loginByCode.timings`
-
-	metricAuthResetPasswordSuccess = `biz.auth.resetPassword.success` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
-	metricAuthResetPasswordFailure = `biz.auth.resetPassword.failure` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
-	metricAuthResetPasswordTimings = `biz.auth.resetPassword.timings` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
-
-	metricAuthNewPasswordSuccess = `biz.auth.newPassword.success` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
-	metricAuthNewPasswordFailure = `biz.auth.newPassword.failure` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
-	metricAuthNewPasswordTimings = `biz.auth.newPassword.timings` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
-
-	metricAuthChangePasswordSuccess = `biz.auth.changePassword.success` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
-	metricAuthChangePasswordFailure = `biz.auth.changePassword.failure` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
-	metricAuthChangePasswordTimings = `biz.auth.changePassword.timings` //nolint:gosec // G101: Potential hardcoded credentials (gosec)
-
-	metricAuthGenerateCodeSuccess = `biz.auth.generateCode.success`
-	metricAuthGenerateCodeFailure = `biz.auth.generateCode.failure`
-	metricAuthGenerateCodeTimings = `biz.auth.generateCode.timings`
-
-	metricAuthHistorySuccess = `biz.auth.history.success`
-	metricAuthHistoryFailure = `biz.auth.history.failure`
-	metricAuthHistoryTimings = `biz.auth.history.timings`
+	metricPrefixAuth = `biz.auth`
 )
 
 var (
@@ -95,7 +66,7 @@ type AuthUsecase struct {
 	historyRepo  HistoryRepo
 	notification clients.Notifications
 	metric       metrics.Metrics
-	logs         logger.Logger
+	logger       logger.Logger
 }
 
 func NewAuthUsecase(
@@ -114,24 +85,50 @@ func NewAuthUsecase(
 		historyRepo:  historyRepo,
 		notification: notification,
 		metric:       metric,
-		logs:         logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `biz/auth`),
+		logger:       logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `biz/auth`),
+	}
+}
+
+func (a *AuthUsecase) postProcess(ctx context.Context, method string, err error) {
+	ignoreErrors := []error{
+		ErrWrongPassword,
+		ErrWrongCode,
+		ErrWrongResetHash,
+		ErrWrongOldPassword,
+		ErrLoginTooOften,
+		ErrLoginByCodeTooOften,
+		ErrResetPasswordTooOften,
+		ErrNewPasswordTooOften,
+		ErrChangePasswordTooOften,
+		ErrGenerateCodeTooOften,
+	}
+	if err != nil {
+		for _, ignoreError := range ignoreErrors {
+			if errors.Is(err, ignoreError) {
+				err = nil
+				break
+			}
+		}
+	}
+	if err != nil {
+		a.logger.WithContext(ctx).Errorf(`biz auth method "%s" failed: %v`, method, err)
+		a.metric.Increment(strings.Metric(metricPrefixAuth, method, `failure`))
+	} else {
+		a.metric.Increment(strings.Metric(metricPrefixAuth, method, `success`))
 	}
 }
 
 func (a *AuthUsecase) Check(ctx context.Context, token string) (*CheckDTO, error) {
-	defer a.metric.NewTiming().Send(metricAuthCheckTimings)
-	if token == "" {
-		return nil, errors.New(`token is empty`)
-	}
+	method := `check`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() {
-		if err != nil {
-			a.logs.WithContext(ctx).Errorf(`failed to check auth: %v`, err)
-			a.metric.Increment(metricAuthCheckFailure)
-		} else {
-			a.metric.Increment(metricAuthCheckSuccess)
-		}
-	}()
+	defer func() { a.postProcess(ctx, method, err) }()
+
+	if token == "" {
+		err = errors.New(`token is empty`)
+		return nil, err
+	}
+
 	session, err := a.sessionRepo.FindByToken(ctx, token)
 	if err != nil {
 		return nil, err
@@ -154,25 +151,23 @@ func (a *AuthUsecase) Check(ctx context.Context, token string) (*CheckDTO, error
 }
 
 func (a *AuthUsecase) Login(ctx context.Context, dto *LoginDTO) (string, *time.Time, error) {
-	defer a.metric.NewTiming().Send(metricAuthLoginTimings)
-	if dto == nil {
-		return "", nil, errors.New("loginDTO is empty")
-	}
+	method := `login`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() {
-		if err != nil && err != ErrWrongPassword && err != ErrLoginTooOften {
-			a.logs.WithContext(ctx).Errorf(`failed to login: %v`, err)
-			a.metric.Increment(metricAuthLoginFailure)
-		} else {
-			a.metric.Increment(metricAuthLoginSuccess)
-		}
-	}()
+	defer func() { a.postProcess(ctx, method, err) }()
+
+	if dto == nil {
+		err = errors.New("loginDTO is empty")
+		return "", nil, err
+	}
+
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
 		return "", nil, err
 	}
 	if foundedUser.PasswordHash == nil {
-		return "", nil, errors.New(`user password was not set, use login by code`)
+		err = errors.New(`user password was not set, use login by code`)
+		return "", nil, err
 	}
 	events, err := a.historyRepo.FindLastUserEvents(
 		ctx,
@@ -184,19 +179,18 @@ func (a *AuthUsecase) Login(ctx context.Context, dto *LoginDTO) (string, *time.T
 		return "", nil, err
 	}
 	if len(events) > loginAgainCount {
-		return "", nil, ErrLoginTooOften
+		err = ErrLoginTooOften
+		return "", nil, err
 	}
 	match := secrets.MustCompareSourceAndHash(dto.Password, *foundedUser.PasswordHash)
 	event := historyModel(foundedUser.ID, schema.EventLoginOk, dto.Stats)
 	defer func() {
 		_, err = a.historyRepo.Create(ctx, event)
-		if err != nil {
-			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
-		}
 	}()
 	if !match {
 		event.Event = schema.EventLoginFailed
-		return "", nil, ErrWrongPassword
+		err = ErrWrongPassword
+		return "", nil, err
 	}
 	session := sessionModelByLogin(foundedUser.ID, *foundedUser.PasswordHash, dto)
 	_, err = a.sessionRepo.Create(ctx, session)
@@ -207,19 +201,16 @@ func (a *AuthUsecase) Login(ctx context.Context, dto *LoginDTO) (string, *time.T
 }
 
 func (a *AuthUsecase) LoginByCode(ctx context.Context, dto *LoginByCodeDTO) (string, *time.Time, error) {
-	defer a.metric.NewTiming().Send(metricAuthLoginByCodeTimings)
-	if dto == nil {
-		return "", nil, errors.New("loginByCodeDTO is empty")
-	}
+	method := `loginByCode`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() {
-		if err != nil && err != ErrWrongCode && err != ErrLoginByCodeTooOften {
-			a.logs.WithContext(ctx).Errorf(`failed to login by code: %v`, err)
-			a.metric.Increment(metricAuthLoginByCodeFailure)
-		} else {
-			a.metric.Increment(metricAuthLoginByCodeSuccess)
-		}
-	}()
+	defer func() { a.postProcess(ctx, method, err) }()
+
+	if dto == nil {
+		err = errors.New("loginByCodeDTO is empty")
+		return "", nil, err
+	}
+
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
 		return "", nil, err
@@ -234,12 +225,14 @@ func (a *AuthUsecase) LoginByCode(ctx context.Context, dto *LoginByCodeDTO) (str
 		return "", nil, err
 	}
 	if len(events) > loginByCodeAgainCount {
-		return "", nil, ErrLoginByCodeTooOften
+		err = ErrLoginByCodeTooOften
+		return "", nil, err
 	}
 	var actualCode *ent.Code
 	actualCode, err = a.codeRepo.FindForUser(ctx, foundedUser.ID)
 	if ent.IsNotFound(err) {
-		return "", nil, fmt.Errorf(`user by username %s does not have actual code`, dto.Username)
+		err = fmt.Errorf(`user by username %s does not have actual code`, dto.Username)
+		return "", nil, err
 	}
 	if err != nil {
 		return "", nil, err
@@ -247,9 +240,7 @@ func (a *AuthUsecase) LoginByCode(ctx context.Context, dto *LoginByCodeDTO) (str
 	match := actualCode.Content == dto.Code
 	event := historyModel(foundedUser.ID, schema.EventLoginByCodeOk, dto.Stats)
 	defer func() {
-		if _, err = a.historyRepo.Create(ctx, event); err != nil {
-			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
-		}
+		_, err = a.historyRepo.Create(ctx, event)
 	}()
 	if !match {
 		event.Event = schema.EventLoginByCodeFailed
@@ -264,19 +255,16 @@ func (a *AuthUsecase) LoginByCode(ctx context.Context, dto *LoginByCodeDTO) (str
 }
 
 func (a *AuthUsecase) ResetPassword(ctx context.Context, dto *ResetPasswordDTO) error {
-	defer a.metric.NewTiming().Send(metricAuthResetPasswordTimings)
-	if dto == nil {
-		return errors.New("resetPasswordDTO is empty")
-	}
+	method := `resetPassword`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() {
-		if err != nil && err != ErrResetPasswordTooOften {
-			a.logs.WithContext(ctx).Errorf(`failed to reset password: %v`, err)
-			a.metric.Increment(metricAuthResetPasswordFailure)
-		} else {
-			a.metric.Increment(metricAuthResetPasswordSuccess)
-		}
-	}()
+	defer func() { a.postProcess(ctx, method, err) }()
+
+	if dto == nil {
+		err = errors.New("resetPasswordDTO is empty")
+		return err
+	}
+
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
 		return err
@@ -291,15 +279,13 @@ func (a *AuthUsecase) ResetPassword(ctx context.Context, dto *ResetPasswordDTO) 
 		return err
 	}
 	if len(events) >= resetPasswordAgainCount {
-		return ErrResetPasswordTooOften
+		err = ErrResetPasswordTooOften
+		return err
 	}
 
 	event := historyModel(foundedUser.ID, schema.EventResetPasswordRequest, dto.Stats)
 	defer func() {
 		_, err = a.historyRepo.Create(ctx, event)
-		if err != nil {
-			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
-		}
 	}()
 	hash := makeHash(passwordResetLength, dto.Username, makeRandomString(randomStringLength))
 	foundedUser.PasswordReset = &hash
@@ -314,19 +300,16 @@ func (a *AuthUsecase) ResetPassword(ctx context.Context, dto *ResetPasswordDTO) 
 }
 
 func (a *AuthUsecase) NewPassword(ctx context.Context, dto *NewPasswordDTO) error {
-	defer a.metric.NewTiming().Send(metricAuthNewPasswordTimings)
-	if dto == nil {
-		return errors.New("newPasswordDTO is empty")
-	}
+	method := `newPassword`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() {
-		if err != nil && err != ErrNewPasswordTooOften && err != ErrWrongResetHash {
-			a.logs.WithContext(ctx).Errorf(`failed to set new password: %v`, err)
-			a.metric.Increment(metricAuthNewPasswordFailure)
-		} else {
-			a.metric.Increment(metricAuthNewPasswordSuccess)
-		}
-	}()
+	defer func() { a.postProcess(ctx, method, err) }()
+
+	if dto == nil {
+		err = errors.New("newPasswordDTO is empty")
+		return err
+	}
+
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
 		return err
@@ -341,32 +324,35 @@ func (a *AuthUsecase) NewPassword(ctx context.Context, dto *NewPasswordDTO) erro
 		return err
 	}
 	if len(events) >= newPasswordAgainCount {
-		return ErrNewPasswordTooOften
+		err = ErrNewPasswordTooOften
+		return err
 	}
 	if foundedUser.PasswordReset == nil {
-		return errors.New(`user password reset hash is empty`)
+		err = errors.New(`user password reset hash is empty`)
+		return err
 	}
 	if foundedUser.PasswordResetExpiredAt == nil {
-		return errors.New(`user password reset expiration time must be set`)
+		err = errors.New(`user password reset expiration time must be set`)
+		return err
 	}
 	if foundedUser.PasswordResetExpiredAt.Before(time.Now()) {
 		foundedUser.PasswordReset = nil
 		foundedUser.PasswordResetExpiredAt = nil
 		if _, err = a.userRepo.Update(ctx, foundedUser); err != nil {
-			a.logs.WithContext(ctx).Errorf(`failed to save founded user: %v`, err)
+			a.logger.WithContext(ctx).Warnf(`failed to save founded user: %v`, err)
 		}
-		return errors.New(`password reset hash is expired, try reset password again`)
+		err = errors.New(`password reset hash is expired, try reset password again`)
+		return err
 	}
 	match := dto.PasswordResetHash == *foundedUser.PasswordReset
 	event := historyModel(foundedUser.ID, schema.EventNewPasswordOk, dto.Stats)
 	defer func() {
-		if _, err = a.historyRepo.Create(ctx, event); err != nil {
-			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
-		}
+		_, err = a.historyRepo.Create(ctx, event)
 	}()
 	if !match {
 		event.Event = schema.EventNewPasswordFailed
-		return ErrWrongResetHash
+		err = ErrWrongResetHash
+		return err
 	}
 	foundedUser.PasswordHash = pointer.ToString(secrets.MustMakeHash(dto.Password))
 	foundedUser.PasswordReset = nil
@@ -375,19 +361,16 @@ func (a *AuthUsecase) NewPassword(ctx context.Context, dto *NewPasswordDTO) erro
 }
 
 func (a *AuthUsecase) ChangePassword(ctx context.Context, dto *ChangePasswordDTO) error {
-	defer a.metric.NewTiming().Send(metricAuthChangePasswordTimings)
-	if dto == nil {
-		return errors.New("changePasswordDTO is empty")
-	}
+	method := `changePassword`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() {
-		if err != nil && err != ErrChangePasswordTooOften && err != ErrWrongOldPassword {
-			a.logs.WithContext(ctx).Errorf(`failed to change password: %v`, err)
-			a.metric.Increment(metricAuthChangePasswordFailure)
-		} else {
-			a.metric.Increment(metricAuthChangePasswordSuccess)
-		}
-	}()
+	defer func() { a.postProcess(ctx, method, err) }()
+
+	if dto == nil {
+		err = errors.New("changePasswordDTO is empty")
+		return err
+	}
+
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
 		return err
@@ -402,18 +385,18 @@ func (a *AuthUsecase) ChangePassword(ctx context.Context, dto *ChangePasswordDTO
 		return err
 	}
 	if len(events) >= changePasswordAgainCount {
-		return ErrChangePasswordTooOften
+		err = ErrChangePasswordTooOften
+		return err
 	}
 	match := secrets.MustCompareSourceAndHash(dto.OldPassword, *foundedUser.PasswordHash)
 	event := historyModel(foundedUser.ID, schema.EventChangePasswordOk, dto.Stats)
 	defer func() {
-		if _, err = a.historyRepo.Create(ctx, event); err != nil {
-			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
-		}
+		_, err = a.historyRepo.Create(ctx, event)
 	}()
 	if !match {
 		event.Event = schema.EventChangePasswordFailed
-		return ErrWrongOldPassword
+		err = ErrWrongOldPassword
+		return err
 	}
 	foundedUser.PasswordHash = pointer.ToString(secrets.MustMakeHash(dto.NewPassword))
 	_, err = a.userRepo.Update(ctx, foundedUser)
@@ -421,19 +404,16 @@ func (a *AuthUsecase) ChangePassword(ctx context.Context, dto *ChangePasswordDTO
 }
 
 func (a *AuthUsecase) GenerateCode(ctx context.Context, dto *GenerateCodeDTO) error {
-	defer a.metric.NewTiming().Send(metricAuthGenerateCodeTimings)
-	if dto == nil {
-		return errors.New("generateCodeDTO is empty")
-	}
+	method := `generateCode`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() {
-		if err != nil && err != ErrGenerateCodeTooOften {
-			a.logs.WithContext(ctx).Errorf(`failed to generate code: %v`, err)
-			a.metric.Increment(metricAuthGenerateCodeFailure)
-		} else {
-			a.metric.Increment(metricAuthGenerateCodeSuccess)
-		}
-	}()
+	defer func() { a.postProcess(ctx, method, err) }()
+
+	if dto == nil {
+		err = errors.New("generateCodeDTO is empty")
+		return err
+	}
+
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
 		return err
@@ -448,15 +428,13 @@ func (a *AuthUsecase) GenerateCode(ctx context.Context, dto *GenerateCodeDTO) er
 		return err
 	}
 	if len(events) >= generateCodeAgainCount {
-		return ErrGenerateCodeTooOften
+		err = ErrGenerateCodeTooOften
+		return err
 	}
 
 	event := historyModel(foundedUser.ID, schema.EventGenerateCodeRequest, dto.Stats)
 	defer func() {
 		_, err = a.historyRepo.Create(ctx, event)
-		if err != nil {
-			a.logs.WithContext(ctx).Errorf(`failed to save history: %v`, err)
-		}
 	}()
 
 	code := mustMakeCode(codeLength)
@@ -470,18 +448,17 @@ func (a *AuthUsecase) GenerateCode(ctx context.Context, dto *GenerateCodeDTO) er
 }
 
 func (a *AuthUsecase) History(ctx context.Context, dto *HistoryDTO) ([]*ent.History, error) {
-	defer a.metric.NewTiming().Send(metricAuthHistoryTimings)
-	if dto == nil {
-		return nil, errors.New("historyDTO is empty")
-	}
+	method := `history`
+	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() {
-		if err != nil {
-			a.logs.WithContext(ctx).Errorf(`failed to get history: %v`, err)
-			a.metric.Increment(metricAuthHistoryFailure)
-		} else {
-			a.metric.Increment(metricAuthHistorySuccess)
-		}
-	}()
-	return a.historyRepo.FindUserEvents(ctx, dto.UserID, dto.Limit, dto.Offset)
+	defer func() { a.postProcess(ctx, method, err) }()
+
+	if dto == nil {
+		err = errors.New("historyDTO is empty")
+		return nil, err
+	}
+
+	var histories []*ent.History
+	histories, err = a.historyRepo.FindUserEvents(ctx, dto.UserID, dto.Limit, dto.Offset)
+	return histories, err
 }
