@@ -45,7 +45,7 @@ message AddRequest {
   optional string email = 4;
   optional string telegramChatId = 5;
   optional string password = 6;
-  bool activated = 7;
+  bool deactivated = 7;
 }
 
 message AddResponse {

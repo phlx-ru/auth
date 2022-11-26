@@ -44,7 +44,7 @@ func (u *UserUsecase) MakeUserAddDTO(a *v1.AddRequest) (*UserAddDTO, error) {
 	if a.Password != nil {
 		dto.PasswordHash = secrets.MustMakeHash(*a.Password)
 	}
-	if !a.Activated {
+	if a.Deactivated {
 		dto.DeactivatedAt = pointer.ToTime(time.Now())
 	}
 	if err := validate.Default(dto); err != nil {

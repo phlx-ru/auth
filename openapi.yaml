@@ -308,7 +308,7 @@ components:
                     type: string
                 password:
                     type: string
-                activated:
+                deactivated:
                     type: boolean
         auth.v1.AddResponse:
             type: object
