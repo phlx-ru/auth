@@ -49,11 +49,11 @@ message AddRequest {
 }
 
 message AddResponse {
-  string id = 1;
+  int64 id = 1;
 }
 
 message EditRequest {
-  string id = 1;
+  int64 id = 1;
   optional string displayName = 2;
   optional string type = 3;
   optional string phone = 4;
@@ -63,9 +63,9 @@ message EditRequest {
 }
 
 message ActivateRequest {
-  string id = 1;
+  int64 id = 1;
 }
 
 message DeactivateRequest {
-  string id = 1;
+  int64 id = 1;
 }

@@ -2,7 +2,6 @@ package biz
 
 import (
 	"errors"
-	"strconv"
 	"time"
 
 	v1 "auth/api/auth/v1"
@@ -23,28 +22,28 @@ type UserAddDTO struct {
 	DeactivatedAt  *time.Time
 }
 
-func (u *UserUsecase) MakeUserAddDTO(a *v1.AddRequest) (*UserAddDTO, error) {
-	if a == nil {
+func (u *UserUsecase) MakeUserAddDTO(request *v1.AddRequest) (*UserAddDTO, error) {
+	if request == nil {
 		return nil, errors.New(`addRequest is empty`)
 	}
 	dto := &UserAddDTO{
-		DisplayName:   a.DisplayName,
-		Type:          a.Type,
+		DisplayName:   request.DisplayName,
+		Type:          request.Type,
 		DeactivatedAt: nil,
 	}
-	if a.Phone != nil {
-		dto.Phone = sanitize.Phone(*a.Phone)
+	if request.Phone != nil {
+		dto.Phone = sanitize.Phone(*request.Phone)
 	}
-	if a.Email != nil {
-		dto.Email = *a.Email
+	if request.Email != nil {
+		dto.Email = *request.Email
 	}
-	if a.TelegramChatId != nil {
-		dto.TelegramChatID = *a.TelegramChatId
+	if request.TelegramChatId != nil {
+		dto.TelegramChatID = *request.TelegramChatId
 	}
-	if a.Password != nil {
-		dto.PasswordHash = secrets.MustMakeHash(*a.Password)
+	if request.Password != nil {
+		dto.PasswordHash = secrets.MustMakeHash(*request.Password)
 	}
-	if a.Deactivated {
+	if request.Deactivated {
 		dto.DeactivatedAt = pointer.ToTime(time.Now())
 	}
 	if err := validate.Default(dto); err != nil {
@@ -63,41 +62,37 @@ type UserEditDTO struct {
 	PasswordHash   *string `validate:"omitempty,min=8,max=256"`
 }
 
-func (u *UserUsecase) MakeUserEditDTO(e *v1.EditRequest) (*UserEditDTO, error) {
-	if e == nil {
+func (u *UserUsecase) MakeUserEditDTO(request *v1.EditRequest) (*UserEditDTO, error) {
+	if request == nil {
 		return nil, errors.New(`editRequest is empty`)
 	}
-	id, err := strconv.ParseInt(e.Id, 10, 64)
-	if err != nil {
-		return nil, err
-	}
 	dto := &UserEditDTO{
-		ID:          int(id),
-		DisplayName: e.DisplayName,
-		Type:        e.Type,
+		ID:          int(request.Id),
+		DisplayName: request.DisplayName,
+		Type:        request.Type,
 	}
-	if e.Phone != nil && *e.Phone != "" {
-		dto.Phone = pointer.ToString(sanitize.Phone(*e.Phone))
+	if request.Phone != nil && *request.Phone != "" {
+		dto.Phone = pointer.ToString(sanitize.Phone(*request.Phone))
 	}
-	if e.Email != nil && *e.Email != "" {
-		dto.Email = e.Email
+	if request.Email != nil && *request.Email != "" {
+		dto.Email = request.Email
 	}
-	if e.TelegramChatId != nil && *e.TelegramChatId != "" {
-		dto.TelegramChatID = e.TelegramChatId
+	if request.TelegramChatId != nil && *request.TelegramChatId != "" {
+		dto.TelegramChatID = request.TelegramChatId
 	}
-	if e.Password != nil {
-		dto.PasswordHash = pointer.ToString(secrets.MustMakeHash(*e.Password))
+	if request.Password != nil {
+		dto.PasswordHash = pointer.ToString(secrets.MustMakeHash(*request.Password))
 	}
 	if err := validate.Default(dto); err != nil {
 		return nil, err
 	}
-	if e.Phone != nil && *e.Phone == "" {
+	if request.Phone != nil && *request.Phone == "" {
 		dto.Phone = pointer.ToString("")
 	}
-	if e.Email != nil && *e.Email == "" {
+	if request.Email != nil && *request.Email == "" {
 		dto.Email = pointer.ToString("")
 	}
-	if e.TelegramChatId != nil && *e.TelegramChatId == "" {
+	if request.TelegramChatId != nil && *request.TelegramChatId == "" {
 		dto.TelegramChatID = pointer.ToString("")
 	}
 	return dto, nil
@@ -107,40 +102,32 @@ type UserActivateDTO struct {
 	ID int `validate:"required,min:1"`
 }
 
-func (u *UserUsecase) MakeUserActivateDTO(e *v1.ActivateRequest) (*UserActivateDTO, error) {
-	if e == nil {
+func (u *UserUsecase) MakeUserActivateDTO(request *v1.ActivateRequest) (*UserActivateDTO, error) {
+	if request == nil {
 		return nil, errors.New(`activateRequest is empty`)
 	}
-	id, err := strconv.ParseInt(e.Id, 10, 64)
-	if err != nil {
-		return nil, err
-	}
 	dto := &UserActivateDTO{
-		ID: int(id),
+		ID: int(request.Id),
 	}
-	if err = validate.Default(dto); err != nil {
+	if err := validate.Default(dto); err != nil {
 		return nil, err
 	}
-	return dto, err
+	return dto, nil
 }
 
 type UserDeactivateDTO struct {
 	ID int `validate:"required,min:1"`
 }
 
-func (u *UserUsecase) MakeUserDeactivateDTO(e *v1.DeactivateRequest) (*UserDeactivateDTO, error) {
-	if e == nil {
+func (u *UserUsecase) MakeUserDeactivateDTO(request *v1.DeactivateRequest) (*UserDeactivateDTO, error) {
+	if request == nil {
 		return nil, errors.New(`deactivateRequest is empty`)
 	}
-	id, err := strconv.ParseInt(e.Id, 10, 64)
-	if err != nil {
-		return nil, err
-	}
 	dto := &UserDeactivateDTO{
-		ID: int(id),
+		ID: int(request.Id),
 	}
-	if err = validate.Default(dto); err != nil {
+	if err := validate.Default(dto); err != nil {
 		return nil, err
 	}
-	return dto, err
+	return dto, nil
 }

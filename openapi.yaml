@@ -292,7 +292,8 @@ components:
             type: object
             properties:
                 id:
-                    type: string
+                    type: integer
+                    format: int64
         auth.v1.AddRequest:
             type: object
             properties:
@@ -314,7 +315,8 @@ components:
             type: object
             properties:
                 id:
-                    type: string
+                    type: integer
+                    format: int64
         auth.v1.AuthNothing:
             type: object
             properties: {}
@@ -388,12 +390,14 @@ components:
             type: object
             properties:
                 id:
-                    type: string
+                    type: integer
+                    format: int64
         auth.v1.EditRequest:
             type: object
             properties:
                 id:
-                    type: string
+                    type: integer
+                    format: int64
                 displayName:
                     type: string
                 type:

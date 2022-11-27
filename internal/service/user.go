@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	authV1 "auth/api/auth/v1"
 	"auth/internal/biz"
@@ -59,7 +58,7 @@ func (u *UserService) Add(ctx context.Context, req *authV1.AddRequest) (*authV1.
 		return nil, authV1.ErrorInternalError(err.Error())
 	}
 	return &authV1.AddResponse{
-		Id: fmt.Sprintf(`%d`, user.ID),
+		Id: int64(user.ID),
 	}, nil
 }
 
