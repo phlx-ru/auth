@@ -18,12 +18,12 @@ const (
 )
 
 type UserUsecase struct {
-	repo   UserRepo
+	repo   userRepo
 	metric metrics.Metrics
 	logger logger.Logger
 }
 
-func NewUserUsecase(repo UserRepo, metric metrics.Metrics, logs log.Logger) *UserUsecase {
+func NewUserUsecase(repo userRepo, metric metrics.Metrics, logs log.Logger) *UserUsecase {
 	return &UserUsecase{
 		repo:   repo,
 		metric: metric,

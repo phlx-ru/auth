@@ -9,7 +9,6 @@ import (
 
 	"auth/ent"
 	"auth/ent/predicate"
-	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
 	pkgStrings "auth/internal/pkg/strings"
@@ -18,21 +17,21 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
-type codeRepo struct {
+type CodeRepo struct {
 	data   Database
 	metric metrics.Metrics
 	logger *log.Helper
 }
 
-func NewCodeRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.CodeRepo {
-	return &codeRepo{
+func NewCodeRepo(data Database, logs log.Logger, metric metrics.Metrics) *CodeRepo {
+	return &CodeRepo{
 		data:   data,
 		metric: metric,
 		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/code`),
 	}
 }
 
-func (c *codeRepo) postProcess(ctx context.Context, method string, err error) {
+func (c *CodeRepo) postProcess(ctx context.Context, method string, err error) {
 	if err != nil {
 		c.logger.WithContext(ctx).Errorf(`history data method "%s" failed: %v`, method, err)
 		c.metric.Increment(pkgStrings.Metric(metricPrefix, method, `failure`))
@@ -41,7 +40,7 @@ func (c *codeRepo) postProcess(ctx context.Context, method string, err error) {
 	}
 }
 
-func (c *codeRepo) Create(ctx context.Context, code *ent.Code) (*ent.Code, error) {
+func (c *CodeRepo) Create(ctx context.Context, code *ent.Code) (*ent.Code, error) {
 	method := `create` // nolint: goconst
 	defer c.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -60,7 +59,7 @@ func (c *codeRepo) Create(ctx context.Context, code *ent.Code) (*ent.Code, error
 	return code, err
 }
 
-func (c *codeRepo) FindForUser(ctx context.Context, userID int) (*ent.Code, error) {
+func (c *CodeRepo) FindForUser(ctx context.Context, userID int) (*ent.Code, error) {
 	method := `findForUser`
 	defer c.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -76,7 +75,7 @@ func (c *codeRepo) FindForUser(ctx context.Context, userID int) (*ent.Code, erro
 	return code, err
 }
 
-func (c *codeRepo) Transaction(
+func (c *CodeRepo) Transaction(
 	ctx context.Context,
 	txOptions *databaseSql.TxOptions,
 	processes ...func(repoCtx context.Context) error,
@@ -90,7 +89,7 @@ func (c *codeRepo) Transaction(
 	return err
 }
 
-func (c *codeRepo) client(ctx context.Context) *ent.CodeClient {
+func (c *CodeRepo) client(ctx context.Context) *ent.CodeClient {
 	return client(c.data)(ctx).Code
 }
 

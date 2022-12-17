@@ -9,7 +9,6 @@ import (
 
 	"auth/ent"
 	"auth/ent/predicate"
-	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
 	pkgStrings "auth/internal/pkg/strings"
@@ -18,21 +17,21 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
-type sessionRepo struct {
+type SessionRepo struct {
 	data   Database
 	metric metrics.Metrics
 	logger *log.Helper
 }
 
-func NewSessionRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.SessionRepo {
-	return &sessionRepo{
+func NewSessionRepo(data Database, logs log.Logger, metric metrics.Metrics) *SessionRepo {
+	return &SessionRepo{
 		data:   data,
 		metric: metric,
 		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/user`),
 	}
 }
 
-func (s *sessionRepo) postProcess(ctx context.Context, method string, err error) {
+func (s *SessionRepo) postProcess(ctx context.Context, method string, err error) {
 	if err != nil {
 		s.logger.WithContext(ctx).Errorf(`session data method "%s" failed: %v`, method, err)
 		s.metric.Increment(pkgStrings.Metric(metricPrefix, method, `failure`))
@@ -41,7 +40,7 @@ func (s *sessionRepo) postProcess(ctx context.Context, method string, err error)
 	}
 }
 
-func (s *sessionRepo) Create(ctx context.Context, session *ent.Session) (*ent.Session, error) {
+func (s *SessionRepo) Create(ctx context.Context, session *ent.Session) (*ent.Session, error) {
 	method := `create` // nolint: goconst
 	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -64,7 +63,7 @@ func (s *sessionRepo) Create(ctx context.Context, session *ent.Session) (*ent.Se
 	return session, err
 }
 
-func (s *sessionRepo) Update(ctx context.Context, session *ent.Session) (*ent.Session, error) {
+func (s *SessionRepo) Update(ctx context.Context, session *ent.Session) (*ent.Session, error) {
 	method := `update` // nolint: goconst
 	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -93,7 +92,7 @@ func (s *sessionRepo) Update(ctx context.Context, session *ent.Session) (*ent.Se
 	return session, err
 }
 
-func (s *sessionRepo) FindByUserID(ctx context.Context, userID int) (*ent.Session, error) {
+func (s *SessionRepo) FindByUserID(ctx context.Context, userID int) (*ent.Session, error) {
 	method := `findByUserID`
 	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -110,7 +109,7 @@ func (s *sessionRepo) FindByUserID(ctx context.Context, userID int) (*ent.Sessio
 	return session, err
 }
 
-func (s *sessionRepo) FindByToken(ctx context.Context, token string) (*ent.Session, error) {
+func (s *SessionRepo) FindByToken(ctx context.Context, token string) (*ent.Session, error) {
 	method := `findByToken`
 	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -132,7 +131,7 @@ func (s *sessionRepo) FindByToken(ctx context.Context, token string) (*ent.Sessi
 	return session, err
 }
 
-func (s *sessionRepo) Transaction(
+func (s *SessionRepo) Transaction(
 	ctx context.Context,
 	txOptions *databaseSql.TxOptions,
 	processes ...func(repoCtx context.Context) error,
@@ -146,7 +145,7 @@ func (s *sessionRepo) Transaction(
 	return err
 }
 
-func (s *sessionRepo) client(ctx context.Context) *ent.SessionClient {
+func (s *SessionRepo) client(ctx context.Context) *ent.SessionClient {
 	return client(s.data)(ctx).Session
 }
 

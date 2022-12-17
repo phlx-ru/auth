@@ -15,10 +15,11 @@ import (
 type UserAddDTO struct {
 	DisplayName    string `validate:"required,min=3,max=255"`
 	Type           string `validate:"required,user_type"`
-	Phone          string `validate:"required_without=Email,omitempty,min=10,numeric,startswith=9"`
+	Phone          string `validate:"required_without=Email,omitempty,min=10,max=10,numeric,startswith=9"`
 	Email          string `validate:"required_without=Phone,omitempty,email"`
-	TelegramChatID string `validate:"required_without=Email,omitempty,numeric"`
-	PasswordHash   string `validate:"required,min=8,max=255"`
+	TelegramChatID string `validate:"omitempty,numeric"`
+	Password       string `validate:"required,min=8,max=255"`
+	PasswordHash   string
 	DeactivatedAt  *time.Time
 }
 
@@ -41,6 +42,7 @@ func (u *UserUsecase) MakeUserAddDTO(request *v1.AddRequest) (*UserAddDTO, error
 		dto.TelegramChatID = *request.TelegramChatId
 	}
 	if request.Password != nil {
+		dto.Password = *request.Password
 		dto.PasswordHash = secrets.MustMakeHash(*request.Password)
 	}
 	if request.Deactivated {

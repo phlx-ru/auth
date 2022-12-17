@@ -8,7 +8,6 @@ import (
 
 	"auth/ent"
 	"auth/ent/predicate"
-	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
 	"auth/internal/pkg/strings"
@@ -17,21 +16,21 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
-type historyRepo struct {
+type HistoryRepo struct {
 	data   Database
 	metric metrics.Metrics
 	logger *log.Helper
 }
 
-func NewHistoryRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.HistoryRepo {
-	return &historyRepo{
+func NewHistoryRepo(data Database, logs log.Logger, metric metrics.Metrics) *HistoryRepo {
+	return &HistoryRepo{
 		data:   data,
 		metric: metric,
 		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/history`),
 	}
 }
 
-func (h *historyRepo) postProcess(ctx context.Context, method string, err error) {
+func (h *HistoryRepo) postProcess(ctx context.Context, method string, err error) {
 	if err != nil {
 		h.logger.WithContext(ctx).Errorf(`history data method "%s" failed: %v`, method, err)
 		h.metric.Increment(strings.Metric(metricPrefix, method, `failure`))
@@ -40,7 +39,7 @@ func (h *historyRepo) postProcess(ctx context.Context, method string, err error)
 	}
 }
 
-func (h *historyRepo) Create(ctx context.Context, history *ent.History) (*ent.History, error) {
+func (h *HistoryRepo) Create(ctx context.Context, history *ent.History) (*ent.History, error) {
 	method := `create`
 	defer h.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -60,7 +59,7 @@ func (h *historyRepo) Create(ctx context.Context, history *ent.History) (*ent.Hi
 	return history, err
 }
 
-func (h *historyRepo) FindLastUserEvents(
+func (h *HistoryRepo) FindLastUserEvents(
 	ctx context.Context,
 	userID int,
 	types []string,
@@ -94,7 +93,7 @@ func (h *historyRepo) FindLastUserEvents(
 	return histories, err
 }
 
-func (h *historyRepo) FindUserEvents(ctx context.Context, userID, limit, offset int) ([]*ent.History, error) {
+func (h *HistoryRepo) FindUserEvents(ctx context.Context, userID, limit, offset int) ([]*ent.History, error) {
 	method := `findUserEvents`
 	defer h.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -128,7 +127,7 @@ func (h *historyRepo) FindUserEvents(ctx context.Context, userID, limit, offset 
 	return histories, err
 }
 
-func (h *historyRepo) Transaction(
+func (h *HistoryRepo) Transaction(
 	ctx context.Context,
 	txOptions *databaseSql.TxOptions,
 	processes ...func(repoCtx context.Context) error,
@@ -142,7 +141,7 @@ func (h *historyRepo) Transaction(
 	return err
 }
 
-func (h *historyRepo) client(ctx context.Context) *ent.HistoryClient {
+func (h *HistoryRepo) client(ctx context.Context) *ent.HistoryClient {
 	return client(h.data)(ctx).History
 }
 

@@ -8,7 +8,6 @@ import (
 
 	"auth/ent"
 	"auth/ent/predicate"
-	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
 	"auth/internal/pkg/strings"
@@ -21,21 +20,21 @@ const (
 	metricPrefix = `data.user`
 )
 
-type userRepo struct {
+type UserRepo struct {
 	data   Database
 	metric metrics.Metrics
 	logger *log.Helper
 }
 
-func NewUserRepo(data Database, logs log.Logger, metric metrics.Metrics) biz.UserRepo {
-	return &userRepo{
+func NewUserRepo(data Database, logs log.Logger, metric metrics.Metrics) *UserRepo {
+	return &UserRepo{
 		data:   data,
 		metric: metric,
 		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/user`),
 	}
 }
 
-func (u *userRepo) postProcess(ctx context.Context, method string, err error) {
+func (u *UserRepo) postProcess(ctx context.Context, method string, err error) {
 	if err != nil {
 		u.logger.WithContext(ctx).Errorf(`user data method "%s" failed: %v`, method, err)
 		u.metric.Increment(strings.Metric(metricPrefix, method, `failure`))
@@ -44,7 +43,7 @@ func (u *userRepo) postProcess(ctx context.Context, method string, err error) {
 	}
 }
 
-func (u *userRepo) Create(ctx context.Context, user *ent.User) (*ent.User, error) {
+func (u *UserRepo) Create(ctx context.Context, user *ent.User) (*ent.User, error) {
 	method := `create`
 	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -71,7 +70,7 @@ func (u *userRepo) Create(ctx context.Context, user *ent.User) (*ent.User, error
 }
 
 // Update all fields of user record. CAUTION: if field in 'user' not set — it will be cleared
-func (u *userRepo) Update(ctx context.Context, user *ent.User) (*ent.User, error) {
+func (u *UserRepo) Update(ctx context.Context, user *ent.User) (*ent.User, error) {
 	method := `update`
 	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -132,7 +131,7 @@ func (u *userRepo) Update(ctx context.Context, user *ent.User) (*ent.User, error
 	return user, err
 }
 
-func (u *userRepo) Activate(ctx context.Context, userID int) (*ent.User, error) {
+func (u *UserRepo) Activate(ctx context.Context, userID int) (*ent.User, error) {
 	method := `activate`
 	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -143,7 +142,7 @@ func (u *userRepo) Activate(ctx context.Context, userID int) (*ent.User, error) 
 	return user, err
 }
 
-func (u *userRepo) Deactivate(ctx context.Context, userID int) (*ent.User, error) {
+func (u *UserRepo) Deactivate(ctx context.Context, userID int) (*ent.User, error) {
 	method := `deactivate`
 	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -154,7 +153,7 @@ func (u *userRepo) Deactivate(ctx context.Context, userID int) (*ent.User, error
 	return user, err
 }
 
-func (u *userRepo) FindByID(ctx context.Context, id int) (*ent.User, error) {
+func (u *UserRepo) FindByID(ctx context.Context, id int) (*ent.User, error) {
 	method := `findByID`
 	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -165,7 +164,7 @@ func (u *userRepo) FindByID(ctx context.Context, id int) (*ent.User, error) {
 	return user, err
 }
 
-func (u *userRepo) FindByEmail(ctx context.Context, email string) (*ent.User, error) {
+func (u *UserRepo) FindByEmail(ctx context.Context, email string) (*ent.User, error) {
 	method := `findByEmail`
 	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -179,7 +178,7 @@ func (u *userRepo) FindByEmail(ctx context.Context, email string) (*ent.User, er
 	return user, err
 }
 
-func (u *userRepo) FindByPhone(ctx context.Context, phone string) (*ent.User, error) {
+func (u *UserRepo) FindByPhone(ctx context.Context, phone string) (*ent.User, error) {
 	method := `findByPhone`
 	defer u.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
@@ -193,7 +192,7 @@ func (u *userRepo) FindByPhone(ctx context.Context, phone string) (*ent.User, er
 	return user, err
 }
 
-func (u *userRepo) Transaction(
+func (u *UserRepo) Transaction(
 	ctx context.Context,
 	txOptions *databaseSql.TxOptions,
 	processes ...func(repoCtx context.Context) error,
@@ -207,7 +206,7 @@ func (u *userRepo) Transaction(
 	return err
 }
 
-func (u *userRepo) client(ctx context.Context) *ent.UserClient {
+func (u *UserRepo) client(ctx context.Context) *ent.UserClient {
 	return client(u.data)(ctx).User
 }
 

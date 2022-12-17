@@ -60,20 +60,20 @@ var (
 )
 
 type AuthUsecase struct {
-	userRepo     UserRepo
-	sessionRepo  SessionRepo
-	codeRepo     CodeRepo
-	historyRepo  HistoryRepo
+	userRepo     userRepo
+	sessionRepo  sessionRepo
+	codeRepo     codeRepo
+	historyRepo  historyRepo
 	notification clients.Notifications
 	metric       metrics.Metrics
 	logger       logger.Logger
 }
 
 func NewAuthUsecase(
-	userRepo UserRepo,
-	sessionRepo SessionRepo,
-	codeRepo CodeRepo,
-	historyRepo HistoryRepo,
+	userRepo userRepo,
+	sessionRepo sessionRepo,
+	codeRepo codeRepo,
+	historyRepo historyRepo,
 	notification clients.Notifications,
 	metric metrics.Metrics,
 	logs log.Logger,
