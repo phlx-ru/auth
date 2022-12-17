@@ -49,10 +49,19 @@ func (u *UserUsecase) Add(ctx context.Context, dto *UserAddDTO) (*ent.User, erro
 	user := &ent.User{
 		DisplayName:   dto.DisplayName,
 		Type:          dto.Type,
-		Email:         pointer.ToString(dto.Email),
-		Phone:         pointer.ToString(dto.Phone),
-		PasswordHash:  pointer.ToString(dto.PasswordHash),
 		DeactivatedAt: dto.DeactivatedAt,
+	}
+
+	if dto.Email != "" {
+		user.Email = pointer.ToString(dto.Email)
+	}
+
+	if dto.Phone != "" {
+		user.Phone = pointer.ToString(dto.Phone)
+	}
+
+	if dto.PasswordHash != "" {
+		user.PasswordHash = pointer.ToString(dto.PasswordHash)
 	}
 
 	user, err = u.repo.Create(ctx, user)
