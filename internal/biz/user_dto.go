@@ -53,7 +53,7 @@ func (u *UserUsecase) MakeUserAddDTO(request *v1.AddRequest) (*UserAddDTO, error
 }
 
 type UserEditDTO struct {
-	ID             int     `validate:"required,min:1"`
+	ID             int     `validate:"required,min=1"`
 	DisplayName    *string `validate:"omitempty,min=3,max=255"`
 	Type           *string `validate:"omitempty,user_type"`
 	Phone          *string `validate:"omitempty,min=10,numeric,startswith=9"`
@@ -99,7 +99,7 @@ func (u *UserUsecase) MakeUserEditDTO(request *v1.EditRequest) (*UserEditDTO, er
 }
 
 type UserActivateDTO struct {
-	ID int `validate:"required,min:1"`
+	ID int `validate:"required,min=1"`
 }
 
 func (u *UserUsecase) MakeUserActivateDTO(request *v1.ActivateRequest) (*UserActivateDTO, error) {
@@ -116,7 +116,7 @@ func (u *UserUsecase) MakeUserActivateDTO(request *v1.ActivateRequest) (*UserAct
 }
 
 type UserDeactivateDTO struct {
-	ID int `validate:"required,min:1"`
+	ID int `validate:"required,min=1"`
 }
 
 func (u *UserUsecase) MakeUserDeactivateDTO(request *v1.DeactivateRequest) (*UserDeactivateDTO, error) {
