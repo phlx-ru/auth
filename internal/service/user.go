@@ -7,7 +7,7 @@ import (
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
-	"auth/internal/pkg/strings"
+	"auth/internal/pkg/watcher"
 
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -18,36 +18,31 @@ const (
 
 type UserService struct {
 	authV1.UnimplementedUserServer
-
 	usecase *biz.UserUsecase
-
-	metric metrics.Metrics
-
-	logger *log.Helper
+	metric  metrics.Metrics
+	logger  *log.Helper
+	watcher *watcher.Watcher
 }
 
 func NewUserService(usecase *biz.UserUsecase, metric metrics.Metrics, logs log.Logger) *UserService {
+	loggerHelper := logger.NewHelper(logs, "ts", log.DefaultTimestamp, "scope", metricPrefixUser)
 	return &UserService{
 		usecase: usecase,
 		metric:  metric,
-		logger:  logger.NewHelper(logs, "ts", log.DefaultTimestamp, "scope", "service/user"),
-	}
-}
-
-func (u *UserService) postProcess(ctx context.Context, method string, err error) {
-	if err != nil {
-		u.logger.WithContext(ctx).Errorf(`user service method "%s" failed: %v`, method, err)
-		u.metric.Increment(strings.Metric(metricPrefixUser, method, `failure`))
-	} else {
-		u.metric.Increment(strings.Metric(metricPrefixUser, method, `success`))
+		logger:  loggerHelper,
+		watcher: watcher.New(metricPrefixUser, loggerHelper, metric).WithIgnoredErrorsChecks([]func(error) bool{
+			authV1.IsValidationFailed,
+		}),
 	}
 }
 
 func (u *UserService) Add(ctx context.Context, req *authV1.AddRequest) (*authV1.AddResponse, error) {
-	method := `add`
-	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
 	var err error
-	defer func() { u.postProcess(ctx, method, err) }()
+	defer u.watcher.OnPreparedMethod(`Add`).WithFields(map[string]any{
+		"displayName": req.DisplayName,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	addDTO, err := u.usecase.MakeUserAddDTO(req)
 	if err != nil {
@@ -63,10 +58,12 @@ func (u *UserService) Add(ctx context.Context, req *authV1.AddRequest) (*authV1.
 }
 
 func (u *UserService) Edit(ctx context.Context, req *authV1.EditRequest) (*authV1.UserNothing, error) {
-	method := `edit`
-	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
 	var err error
-	defer func() { u.postProcess(ctx, method, err) }()
+	defer u.watcher.OnPreparedMethod(`Edit`).WithFields(map[string]any{
+		"userId": req.Id,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	editDTO, err := u.usecase.MakeUserEditDTO(req)
 	if err != nil {
@@ -80,10 +77,12 @@ func (u *UserService) Edit(ctx context.Context, req *authV1.EditRequest) (*authV
 }
 
 func (u *UserService) Activate(ctx context.Context, req *authV1.ActivateRequest) (*authV1.UserNothing, error) {
-	method := `activate`
-	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
 	var err error
-	defer func() { u.postProcess(ctx, method, err) }()
+	defer u.watcher.OnPreparedMethod(`Activate`).WithFields(map[string]any{
+		"userId": req.Id,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	activateDTO, err := u.usecase.MakeUserActivateDTO(req)
 	if err != nil {
@@ -97,10 +96,12 @@ func (u *UserService) Activate(ctx context.Context, req *authV1.ActivateRequest)
 }
 
 func (u *UserService) Deactivate(ctx context.Context, req *authV1.DeactivateRequest) (*authV1.UserNothing, error) {
-	method := `deactivate`
-	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
 	var err error
-	defer func() { u.postProcess(ctx, method, err) }()
+	defer u.watcher.OnPreparedMethod(`Deactivate`).WithFields(map[string]any{
+		"userId": req.Id,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	deactivateDTO, err := u.usecase.MakeUserDeactivateDTO(req)
 	if err != nil {

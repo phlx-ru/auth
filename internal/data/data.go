@@ -25,6 +25,7 @@ const (
 	maxConnLifetime    = 5 * time.Minute
 	sendStatsEvery     = time.Second
 
+	orderAsc  = `asc`
 	orderDesc = `desc`
 )
 

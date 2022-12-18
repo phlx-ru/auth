@@ -2,12 +2,13 @@ package biz
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"auth/ent"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
-	"auth/internal/pkg/strings"
+	"auth/internal/pkg/watcher"
 
 	"github.com/AlekSi/pointer"
 	"github.com/go-kratos/kratos/v2/log"
@@ -18,33 +19,33 @@ const (
 )
 
 type UserUsecase struct {
-	repo   userRepo
-	metric metrics.Metrics
-	logger logger.Logger
+	repo    userRepo
+	metric  metrics.Metrics
+	logger  logger.Logger
+	watcher *watcher.Watcher
 }
 
 func NewUserUsecase(repo userRepo, metric metrics.Metrics, logs log.Logger) *UserUsecase {
+	loggerHelper := logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, metricPrefixUser)
 	return &UserUsecase{
-		repo:   repo,
-		metric: metric,
-		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `biz/user`),
-	}
-}
-
-func (u *UserUsecase) postProcess(ctx context.Context, method string, err error) {
-	if err != nil {
-		u.logger.WithContext(ctx).Errorf(`user service method "%s" failed: %v`, method, err)
-		u.metric.Increment(strings.Metric(metricPrefixUser, method, `failure`))
-	} else {
-		u.metric.Increment(strings.Metric(metricPrefixUser, method, `success`))
+		repo:    repo,
+		metric:  metric,
+		logger:  loggerHelper,
+		watcher: watcher.New(metricPrefixUser, loggerHelper, metric),
 	}
 }
 
 func (u *UserUsecase) Add(ctx context.Context, dto *UserAddDTO) (*ent.User, error) {
-	method := `add`
-	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
 	var err error
-	defer func() { u.postProcess(ctx, method, err) }()
+	if dto == nil {
+		err = errors.New("userAddDTO is empty")
+		return nil, err
+	}
+	defer u.watcher.OnPreparedMethod(`Add`).WithFields(map[string]any{
+		"displayName": dto.DisplayName,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	user := &ent.User{
 		DisplayName:   dto.DisplayName,
@@ -69,10 +70,16 @@ func (u *UserUsecase) Add(ctx context.Context, dto *UserAddDTO) (*ent.User, erro
 }
 
 func (u *UserUsecase) Edit(ctx context.Context, dto *UserEditDTO) (*ent.User, error) {
-	method := `edit`
-	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
 	var err error
-	defer func() { u.postProcess(ctx, method, err) }()
+	if dto == nil {
+		err = errors.New("userEditDTO is empty")
+		return nil, err
+	}
+	defer u.watcher.OnPreparedMethod(`Edit`).WithFields(map[string]any{
+		"id": dto.ID,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	user, err := u.repo.FindByID(ctx, dto.ID)
 	if err != nil {
@@ -124,14 +131,15 @@ func (u *UserUsecase) Edit(ctx context.Context, dto *UserEditDTO) (*ent.User, er
 }
 
 func (u *UserUsecase) Activate(ctx context.Context, userID int) (*ent.User, error) {
-	method := `activate`
-	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
 	var err error
-	defer func() { u.postProcess(ctx, method, err) }()
-
 	if userID <= 0 {
 		return nil, fmt.Errorf("user id must be positive integer, get %d", userID)
 	}
+	defer u.watcher.OnPreparedMethod(`Activate`).WithFields(map[string]any{
+		"userID": userID,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	var user *ent.User
 	user, err = u.repo.Activate(ctx, userID)
@@ -139,14 +147,15 @@ func (u *UserUsecase) Activate(ctx context.Context, userID int) (*ent.User, erro
 }
 
 func (u *UserUsecase) Deactivate(ctx context.Context, userID int) (*ent.User, error) {
-	method := `deactivate`
-	defer u.metric.NewTiming().Send(strings.Metric(metricPrefixUser, method, `timings`))
 	var err error
-	defer func() { u.postProcess(ctx, method, err) }()
-
 	if userID <= 0 {
 		return nil, fmt.Errorf("user id must be positive integer, get %d", userID)
 	}
+	defer u.watcher.OnPreparedMethod(`Deactivate`).WithFields(map[string]any{
+		"userID": userID,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	var user *ent.User
 	user, err = u.repo.Deactivate(ctx, userID)

@@ -7,6 +7,13 @@ import "google/api/annotations.proto";
 option go_package = "auth/api/auth/v1;v1";
 
 service User {
+  rpc List (ListRequest) returns (ListResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/add"
+      body: "*"
+    };
+  }
+
   rpc Add (AddRequest) returns (AddResponse) {
     option (google.api.http) = {
       post: "/v1/users/add"
@@ -37,6 +44,16 @@ service User {
 }
 
 message UserNothing {}
+
+message ListRequest {
+  int64 limit = 1;
+  int64 offset = 2;
+
+}
+
+message ListResponse {
+
+}
 
 message AddRequest {
   string displayName = 1;

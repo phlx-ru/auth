@@ -10,45 +10,45 @@ import (
 	"auth/ent/predicate"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
-	"auth/internal/pkg/strings"
+	"auth/internal/pkg/watcher"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+const (
+	metricPrefixHistory = `data.history`
+)
+
 type HistoryRepo struct {
-	data   Database
-	metric metrics.Metrics
-	logger *log.Helper
+	data    Database
+	metric  metrics.Metrics
+	logger  *log.Helper
+	watcher *watcher.Watcher
 }
 
 func NewHistoryRepo(data Database, logs log.Logger, metric metrics.Metrics) *HistoryRepo {
+	loggerHelper := logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, metricPrefixHistory)
 	return &HistoryRepo{
-		data:   data,
-		metric: metric,
-		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/history`),
-	}
-}
-
-func (h *HistoryRepo) postProcess(ctx context.Context, method string, err error) {
-	if err != nil {
-		h.logger.WithContext(ctx).Errorf(`history data method "%s" failed: %v`, method, err)
-		h.metric.Increment(strings.Metric(metricPrefix, method, `failure`))
-	} else {
-		h.metric.Increment(strings.Metric(metricPrefix, method, `success`))
+		data:    data,
+		metric:  metric,
+		logger:  loggerHelper,
+		watcher: watcher.New(metricPrefixHistory, loggerHelper, metric),
 	}
 }
 
 func (h *HistoryRepo) Create(ctx context.Context, history *ent.History) (*ent.History, error) {
-	method := `create`
-	defer h.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
-	defer func() { h.postProcess(ctx, method, err) }()
-
 	if history == nil {
 		err = errors.New("code is empty")
 		return nil, err
 	}
+	defer h.watcher.OnPreparedMethod(`Create`).WithFields(map[string]any{
+		"userId": history.UserID,
+		"event":  history.Event,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	history, err = h.client(ctx).Create().
 		SetUserID(history.UserID).
@@ -65,10 +65,14 @@ func (h *HistoryRepo) FindLastUserEvents(
 	types []string,
 	interval time.Duration,
 ) ([]*ent.History, error) {
-	method := `findLastUserEvents`
-	defer h.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
-	defer func() { h.postProcess(ctx, method, err) }()
+	defer h.watcher.OnPreparedMethod(`FindLastUserEvents`).WithFields(map[string]any{
+		"userId":   userID,
+		"types":    types,
+		"interval": interval,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	if userID <= 0 {
 		err = errors.New("userID must be greater than 0")
@@ -94,10 +98,14 @@ func (h *HistoryRepo) FindLastUserEvents(
 }
 
 func (h *HistoryRepo) FindUserEvents(ctx context.Context, userID, limit, offset int) ([]*ent.History, error) {
-	method := `findUserEvents`
-	defer h.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
-	defer func() { h.postProcess(ctx, method, err) }()
+	defer h.watcher.OnPreparedMethod(`FindUserEvents`).WithFields(map[string]any{
+		"userId": userID,
+		"limit":  limit,
+		"offset": offset,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	if userID <= 0 {
 		err = errors.New("userID must be greater than 0")
@@ -132,10 +140,13 @@ func (h *HistoryRepo) Transaction(
 	txOptions *databaseSql.TxOptions,
 	processes ...func(repoCtx context.Context) error,
 ) error {
-	method := `transaction`
-	defer h.metric.NewTiming().Send(strings.Metric(metricPrefix, method, `timings`))
 	var err error
-	defer func() { h.postProcess(ctx, method, err) }()
+	defer h.watcher.OnPreparedMethod(`Transaction`).WithFields(map[string]any{
+		"txOptions":       txOptions,
+		"processesLength": len(processes),
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	err = transaction(h.data, h.logger)(ctx, txOptions, processes...)
 	return err

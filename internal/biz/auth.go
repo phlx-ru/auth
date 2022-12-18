@@ -12,8 +12,8 @@ import (
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
 	"auth/internal/pkg/secrets"
-	"auth/internal/pkg/strings"
 	"auth/internal/pkg/texts"
+	"auth/internal/pkg/watcher"
 
 	"github.com/AlekSi/pointer"
 	"github.com/go-kratos/kratos/v2/log"
@@ -57,40 +57,8 @@ var (
 	ErrNewPasswordTooOften    = errors.New(texts.NewPasswordTooOften)
 	ErrChangePasswordTooOften = errors.New(texts.ChangePasswordTooOften)
 	ErrGenerateCodeTooOften   = errors.New(texts.GenerateCodeTooOften)
-)
 
-type AuthUsecase struct {
-	userRepo     userRepo
-	sessionRepo  sessionRepo
-	codeRepo     codeRepo
-	historyRepo  historyRepo
-	notification clients.Notifications
-	metric       metrics.Metrics
-	logger       logger.Logger
-}
-
-func NewAuthUsecase(
-	userRepo userRepo,
-	sessionRepo sessionRepo,
-	codeRepo codeRepo,
-	historyRepo historyRepo,
-	notification clients.Notifications,
-	metric metrics.Metrics,
-	logs log.Logger,
-) *AuthUsecase {
-	return &AuthUsecase{
-		userRepo:     userRepo,
-		sessionRepo:  sessionRepo,
-		codeRepo:     codeRepo,
-		historyRepo:  historyRepo,
-		notification: notification,
-		metric:       metric,
-		logger:       logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `biz/auth`),
-	}
-}
-
-func (a *AuthUsecase) postProcess(ctx context.Context, method string, err error) {
-	ignoreErrors := []error{
+	IgnoredErrors = []error{
 		ErrWrongPassword,
 		ErrWrongCode,
 		ErrWrongResetHash,
@@ -102,27 +70,46 @@ func (a *AuthUsecase) postProcess(ctx context.Context, method string, err error)
 		ErrChangePasswordTooOften,
 		ErrGenerateCodeTooOften,
 	}
-	if err != nil {
-		for _, ignoreError := range ignoreErrors {
-			if errors.Is(err, ignoreError) {
-				err = nil
-				break
-			}
-		}
-	}
-	if err != nil {
-		a.logger.WithContext(ctx).Errorf(`biz auth method "%s" failed: %v`, method, err)
-		a.metric.Increment(strings.Metric(metricPrefixAuth, method, `failure`))
-	} else {
-		a.metric.Increment(strings.Metric(metricPrefixAuth, method, `success`))
+)
+
+type AuthUsecase struct {
+	userRepo     userRepo
+	sessionRepo  sessionRepo
+	codeRepo     codeRepo
+	historyRepo  historyRepo
+	notification clients.Notifications
+	metric       metrics.Metrics
+	logger       logger.Logger
+	watcher      *watcher.Watcher
+}
+
+func NewAuthUsecase(
+	userRepo userRepo,
+	sessionRepo sessionRepo,
+	codeRepo codeRepo,
+	historyRepo historyRepo,
+	notification clients.Notifications,
+	metric metrics.Metrics,
+	logs log.Logger,
+) *AuthUsecase {
+	loggerHelper := logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, metricPrefixAuth)
+	return &AuthUsecase{
+		userRepo:     userRepo,
+		sessionRepo:  sessionRepo,
+		codeRepo:     codeRepo,
+		historyRepo:  historyRepo,
+		notification: notification,
+		metric:       metric,
+		logger:       loggerHelper,
+		watcher:      watcher.New(metricPrefixAuth, loggerHelper, metric).WithIgnoredErrors(IgnoredErrors),
 	}
 }
 
 func (a *AuthUsecase) Check(ctx context.Context, token string) (*CheckDTO, error) {
-	method := `check`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
+	defer a.watcher.OnPreparedMethod(`Check`).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	if token == "" {
 		err = errors.New(`token is empty`)
@@ -151,15 +138,17 @@ func (a *AuthUsecase) Check(ctx context.Context, token string) (*CheckDTO, error
 }
 
 func (a *AuthUsecase) Login(ctx context.Context, dto *LoginDTO) (string, *time.Time, error) {
-	method := `login`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
-
 	if dto == nil {
 		err = errors.New("loginDTO is empty")
 		return "", nil, err
 	}
+	defer a.watcher.OnPreparedMethod(`Login`).WithFields(map[string]any{
+		"username": dto.Username,
+		"remember": dto.Remember,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
@@ -201,15 +190,17 @@ func (a *AuthUsecase) Login(ctx context.Context, dto *LoginDTO) (string, *time.T
 }
 
 func (a *AuthUsecase) LoginByCode(ctx context.Context, dto *LoginByCodeDTO) (string, *time.Time, error) {
-	method := `loginByCode`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
-
 	if dto == nil {
 		err = errors.New("loginByCodeDTO is empty")
 		return "", nil, err
 	}
+	defer a.watcher.OnPreparedMethod(`LoginByCode`).WithFields(map[string]any{
+		"username": dto.Username,
+		"remember": dto.Remember,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
@@ -255,15 +246,16 @@ func (a *AuthUsecase) LoginByCode(ctx context.Context, dto *LoginByCodeDTO) (str
 }
 
 func (a *AuthUsecase) ResetPassword(ctx context.Context, dto *ResetPasswordDTO) error {
-	method := `resetPassword`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
-
 	if dto == nil {
 		err = errors.New("resetPasswordDTO is empty")
 		return err
 	}
+	defer a.watcher.OnPreparedMethod(`ResetPassword`).WithFields(map[string]any{
+		"username": dto.Username,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
@@ -300,15 +292,16 @@ func (a *AuthUsecase) ResetPassword(ctx context.Context, dto *ResetPasswordDTO) 
 }
 
 func (a *AuthUsecase) NewPassword(ctx context.Context, dto *NewPasswordDTO) error {
-	method := `newPassword`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
-
 	if dto == nil {
 		err = errors.New("newPasswordDTO is empty")
 		return err
 	}
+	defer a.watcher.OnPreparedMethod(`NewPassword`).WithFields(map[string]any{
+		"username": dto.Username,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
@@ -361,15 +354,16 @@ func (a *AuthUsecase) NewPassword(ctx context.Context, dto *NewPasswordDTO) erro
 }
 
 func (a *AuthUsecase) ChangePassword(ctx context.Context, dto *ChangePasswordDTO) error {
-	method := `changePassword`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
-
 	if dto == nil {
 		err = errors.New("changePasswordDTO is empty")
 		return err
 	}
+	defer a.watcher.OnPreparedMethod(`ChangePassword`).WithFields(map[string]any{
+		"username": dto.Username,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
@@ -404,15 +398,16 @@ func (a *AuthUsecase) ChangePassword(ctx context.Context, dto *ChangePasswordDTO
 }
 
 func (a *AuthUsecase) GenerateCode(ctx context.Context, dto *GenerateCodeDTO) error {
-	method := `generateCode`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
-
 	if dto == nil {
 		err = errors.New("generateCodeDTO is empty")
 		return err
 	}
+	defer a.watcher.OnPreparedMethod(`GenerateCode`).WithFields(map[string]any{
+		"username": dto.Username,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	foundedUser, err := a.userByUsername(ctx, dto.Username)
 	if err != nil {
@@ -448,15 +443,18 @@ func (a *AuthUsecase) GenerateCode(ctx context.Context, dto *GenerateCodeDTO) er
 }
 
 func (a *AuthUsecase) History(ctx context.Context, dto *HistoryDTO) ([]*ent.History, error) {
-	method := `history`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
-
 	if dto == nil {
 		err = errors.New("historyDTO is empty")
 		return nil, err
 	}
+	defer a.watcher.OnPreparedMethod(`History`).WithFields(map[string]any{
+		"userId": dto.UserID,
+		"limit":  dto.Limit,
+		"offset": dto.Offset,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	var histories []*ent.History
 	histories, err = a.historyRepo.FindUserEvents(ctx, dto.UserID, dto.Limit, dto.Offset)

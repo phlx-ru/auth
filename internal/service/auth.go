@@ -8,7 +8,7 @@ import (
 	"auth/internal/biz"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
-	"auth/internal/pkg/strings"
+	"auth/internal/pkg/watcher"
 
 	"github.com/AlekSi/pointer"
 	"github.com/go-kratos/kratos/v2/log"
@@ -25,6 +25,7 @@ type AuthService struct {
 	usecase *biz.AuthUsecase
 	metric  metrics.Metrics
 	logger  *log.Helper
+	watcher *watcher.Watcher
 }
 
 func NewAuthService(
@@ -32,27 +33,25 @@ func NewAuthService(
 	metric metrics.Metrics,
 	logs log.Logger,
 ) *AuthService {
+	loggerHelper := logger.NewHelper(logs, "ts", log.DefaultTimestamp, "scope", metricPrefixAuth)
 	return &AuthService{
 		usecase: usecase,
 		metric:  metric,
-		logger:  logger.NewHelper(logs, "ts", log.DefaultTimestamp, "scope", "service/auth"),
-	}
-}
-
-func (a *AuthService) postProcess(ctx context.Context, method string, err error) {
-	if err != nil {
-		a.logger.WithContext(ctx).Errorf(`auth service method "%s" failed: %v`, method, err)
-		a.metric.Increment(strings.Metric(metricPrefixAuth, method, `failure`))
-	} else {
-		a.metric.Increment(strings.Metric(metricPrefixAuth, method, `success`))
+		logger:  loggerHelper,
+		watcher: watcher.New(metricPrefixAuth, loggerHelper, metric).WithIgnoredErrorsChecks([]func(error) bool{
+			authV1.IsValidationFailed,
+			authV1.IsNotFound,
+			authV1.IsTooOften,
+			authV1.IsWrongInput,
+		}),
 	}
 }
 
 func (a *AuthService) Check(ctx context.Context, req *authV1.CheckRequest) (*authV1.CheckResponse, error) {
-	method := `check`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
+	defer a.watcher.OnPreparedMethod(`Check`).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	dto, err := a.usecase.Check(ctx, req.Token)
 	if ent.IsNotFound(err) {
@@ -79,10 +78,12 @@ func (a *AuthService) Check(ctx context.Context, req *authV1.CheckRequest) (*aut
 }
 
 func (a *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*authV1.LoginResponse, error) {
-	method := `login`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
+	defer a.watcher.OnPreparedMethod(`Login`).WithFields(map[string]any{
+		"username": req.Username,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
@@ -116,10 +117,12 @@ func (a *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*aut
 }
 
 func (a *AuthService) LoginByCode(ctx context.Context, req *authV1.LoginByCodeRequest) (*authV1.LoginResponse, error) {
-	method := `loginByCode`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
+	defer a.watcher.OnPreparedMethod(`LoginByCode`).WithFields(map[string]any{
+		"username": req.Username,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
@@ -156,10 +159,12 @@ func (a *AuthService) ResetPassword(ctx context.Context, req *authV1.ResetPasswo
 	*authV1.AuthNothing,
 	error,
 ) {
-	method := `resetPassword`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
+	defer a.watcher.OnPreparedMethod(`ResetPassword`).WithFields(map[string]any{
+		"username": req.Username,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
@@ -185,10 +190,12 @@ func (a *AuthService) ResetPassword(ctx context.Context, req *authV1.ResetPasswo
 }
 
 func (a *AuthService) NewPassword(ctx context.Context, req *authV1.NewPasswordRequest) (*authV1.AuthNothing, error) {
-	method := `newPassword`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
+	defer a.watcher.OnPreparedMethod(`NewPassword`).WithFields(map[string]any{
+		"username": req.Username,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
@@ -222,10 +229,12 @@ func (a *AuthService) ChangePassword(ctx context.Context, req *authV1.ChangePass
 	*authV1.AuthNothing,
 	error,
 ) {
-	method := `changePassword`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
+	defer a.watcher.OnPreparedMethod(`ChangePassword`).WithFields(map[string]any{
+		"username": req.Username,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
@@ -259,10 +268,12 @@ func (a *AuthService) GenerateCode(ctx context.Context, req *authV1.GenerateCode
 	*authV1.AuthNothing,
 	error,
 ) {
-	method := `generateCode`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
+	defer a.watcher.OnPreparedMethod(`GenerateCode`).WithFields(map[string]any{
+		"username": req.Username,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	if req.Stats == nil {
 		req.Stats = statsFromRequestContext(ctx)
@@ -288,10 +299,14 @@ func (a *AuthService) GenerateCode(ctx context.Context, req *authV1.GenerateCode
 }
 
 func (a *AuthService) History(ctx context.Context, req *authV1.HistoryRequest) (*authV1.HistoryResponse, error) {
-	method := `history`
-	defer a.metric.NewTiming().Send(strings.Metric(metricPrefixAuth, method, `timings`))
 	var err error
-	defer func() { a.postProcess(ctx, method, err) }()
+	defer a.watcher.OnPreparedMethod(`History`).WithFields(map[string]any{
+		"userId": req.UserId,
+		"limit":  req.Limit,
+		"offset": req.Offset,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	resp := &authV1.HistoryResponse{
 		Items: make([]*authV1.HistoryItem, 0),

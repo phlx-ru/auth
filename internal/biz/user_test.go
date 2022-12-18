@@ -41,7 +41,7 @@ func TestUserUsecase_Add(t *testing.T) {
 
 	mockedMetrics := stubs.NewMetricsMuted()
 
-	mockedLog := stubs.NewLoggerMuted()
+	mockedLog := stubs.NewLoggerBaseMuted()
 
 	userUsecase := NewUserUsecase(mockedUserRepo, mockedMetrics, mockedLog)
 

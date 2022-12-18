@@ -11,45 +11,45 @@ import (
 	"auth/ent/predicate"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
-	pkgStrings "auth/internal/pkg/strings"
+	"auth/internal/pkg/watcher"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+const (
+	metricPrefixSession = `data.session`
+)
+
 type SessionRepo struct {
-	data   Database
-	metric metrics.Metrics
-	logger *log.Helper
+	data    Database
+	metric  metrics.Metrics
+	logger  *log.Helper
+	watcher *watcher.Watcher
 }
 
 func NewSessionRepo(data Database, logs log.Logger, metric metrics.Metrics) *SessionRepo {
+	loggerHelper := logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, metricPrefixSession)
 	return &SessionRepo{
-		data:   data,
-		metric: metric,
-		logger: logger.NewHelper(logs, `ts`, log.DefaultTimestamp, `scope`, `data/user`),
-	}
-}
-
-func (s *SessionRepo) postProcess(ctx context.Context, method string, err error) {
-	if err != nil {
-		s.logger.WithContext(ctx).Errorf(`session data method "%s" failed: %v`, method, err)
-		s.metric.Increment(pkgStrings.Metric(metricPrefix, method, `failure`))
-	} else {
-		s.metric.Increment(pkgStrings.Metric(metricPrefix, method, `success`))
+		data:    data,
+		metric:  metric,
+		logger:  loggerHelper,
+		watcher: watcher.New(metricPrefixSession, loggerHelper, metric),
 	}
 }
 
 func (s *SessionRepo) Create(ctx context.Context, session *ent.Session) (*ent.Session, error) {
-	method := `create` // nolint: goconst
-	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
-	defer func() { s.postProcess(ctx, method, err) }()
-
 	if session == nil {
 		err = errors.New(`session is empty`)
 		return nil, err
 	}
+	defer s.watcher.OnPreparedMethod(`Create`).WithFields(map[string]any{
+		"userId":    session.UserID,
+		"expiredAt": session.ExpiredAt,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	session, err = s.client(ctx).Create().
 		SetUserID(session.UserID).
@@ -64,15 +64,17 @@ func (s *SessionRepo) Create(ctx context.Context, session *ent.Session) (*ent.Se
 }
 
 func (s *SessionRepo) Update(ctx context.Context, session *ent.Session) (*ent.Session, error) {
-	method := `update` // nolint: goconst
-	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
-	defer func() { s.postProcess(ctx, method, err) }()
-
 	if session == nil {
 		err = errors.New(`session is empty`)
 		return nil, err
 	}
+	defer s.watcher.OnPreparedMethod(`Update`).WithFields(map[string]any{
+		"userId":    session.UserID,
+		"expiredAt": session.ExpiredAt,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	updated := s.client(ctx).UpdateOne(session).
 		SetUserID(session.UserID).
@@ -93,10 +95,12 @@ func (s *SessionRepo) Update(ctx context.Context, session *ent.Session) (*ent.Se
 }
 
 func (s *SessionRepo) FindByUserID(ctx context.Context, userID int) (*ent.Session, error) {
-	method := `findByUserID`
-	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
-	defer func() { s.postProcess(ctx, method, err) }()
+	defer s.watcher.OnPreparedMethod(`FindByUserID`).WithFields(map[string]any{
+		"userId": userID,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	var session *ent.Session
 	actualTime := time.Now()
@@ -110,10 +114,10 @@ func (s *SessionRepo) FindByUserID(ctx context.Context, userID int) (*ent.Sessio
 }
 
 func (s *SessionRepo) FindByToken(ctx context.Context, token string) (*ent.Session, error) {
-	method := `findByToken`
-	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
-	defer func() { s.postProcess(ctx, method, err) }()
+	defer s.watcher.OnPreparedMethod(`FindByToken`).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	if token == "" {
 		err = errors.New(`token is empty`)
@@ -136,10 +140,13 @@ func (s *SessionRepo) Transaction(
 	txOptions *databaseSql.TxOptions,
 	processes ...func(repoCtx context.Context) error,
 ) error {
-	method := `transaction`
-	defer s.metric.NewTiming().Send(pkgStrings.Metric(metricPrefix, method, `timings`))
 	var err error
-	defer func() { s.postProcess(ctx, method, err) }()
+	defer s.watcher.OnPreparedMethod(`Transaction`).WithFields(map[string]any{
+		"txOptions":       txOptions,
+		"processesLength": len(processes),
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
 
 	err = transaction(s.data, s.logger)(ctx, txOptions, processes...)
 	return err
