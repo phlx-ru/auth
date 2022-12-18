@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"auth/ent"
+	"auth/internal/data"
 	"auth/internal/pkg/logger"
 	"auth/internal/pkg/metrics"
 	"auth/internal/pkg/watcher"
@@ -33,6 +34,20 @@ func NewUserUsecase(repo userRepo, metric metrics.Metrics, logs log.Logger) *Use
 		logger:  loggerHelper,
 		watcher: watcher.New(metricPrefixUser, loggerHelper, metric),
 	}
+}
+
+func (u *UserUsecase) List(ctx context.Context, limit, offset int64) ([]*ent.User, error) {
+	var err error
+	defer u.watcher.OnPreparedMethod(`List`).WithFields(map[string]any{
+		"limit":  limit,
+		"offset": offset,
+	}).Results(func() (context.Context, error) {
+		return ctx, err
+	})
+
+	var list []*ent.User
+	list, err = u.repo.List(ctx, limit, offset, data.UserDefaultListOrderFields, data.UserDefaultListOrderDirection)
+	return list, err
 }
 
 func (u *UserUsecase) Add(ctx context.Context, dto *UserAddDTO) (*ent.User, error) {

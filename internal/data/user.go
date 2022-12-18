@@ -87,13 +87,17 @@ func (u *UserRepo) List(ctx context.Context, limit, offset int64, orderFields []
 	}
 
 	for _, orderField := range orderFields {
+		allowed := false
 		for _, allowedField := range UserAllowedListOrderFields {
 			if orderField == allowedField {
+				allowed = true
 				continue
 			}
 		}
-		err = fmt.Errorf("order field '%s' is not allowed", orderField)
-		return nil, err
+		if !allowed {
+			err = fmt.Errorf("order field '%s' is not allowed", orderField)
+			return nil, err
+		}
 	}
 
 	list, err := u.client(ctx).Query().

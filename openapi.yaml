@@ -286,6 +286,29 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/auth.v1.UserNothing'
+    /v1/users/list:
+        get:
+            tags:
+                - User
+            operationId: User_List
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int64
+                - name: offset
+                  in: query
+                  schema:
+                    type: integer
+                    format: int64
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/auth.v1.ListResponse'
 components:
     schemas:
         auth.v1.ActivateRequest:
@@ -452,6 +475,38 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/auth.v1.HistoryItem'
+        auth.v1.ListResponse:
+            type: object
+            properties:
+                users:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/auth.v1.ListUser'
+        auth.v1.ListUser:
+            type: object
+            properties:
+                id:
+                    type: integer
+                    format: int64
+                displayName:
+                    type: string
+                type:
+                    type: string
+                email:
+                    type: string
+                phone:
+                    type: string
+                telegramChatId:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                deactivatedAt:
+                    type: string
+                    format: date-time
         auth.v1.LoginByCodeRequest:
             type: object
             properties:

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime/debug"
 	"strings"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -162,7 +163,8 @@ type ContextAndErrorCatcher func() (context.Context, error)
 func (w *Watcher) Results(catcher ContextAndErrorCatcher) {
 	ctx, err := catcher()
 	result := `success`
-	if err != nil && !isIgnoredError(err, w.ignoredErrors, w.ignoredErrorsChecks) {
+	isIgnored := isIgnoredError(err, w.ignoredErrors, w.ignoredErrorsChecks)
+	if err != nil && !isIgnored {
 		result = `failure`
 	}
 	if !isNil(w.logger) {
@@ -171,14 +173,22 @@ func (w *Watcher) Results(catcher ContextAndErrorCatcher) {
 			w.method = "unknown"
 		}
 		w.fields[log.DefaultMessageKey] = fmt.Sprintf(`%s has %s on %s`, w.metricPrefix, result, w.method)
+		if err != nil && !isIgnored {
+			w.fields[`error`] = err
+			w.fields[`stack`] = string(debug.Stack())
+		}
 		kvs := make([]any, 0, len(w.fields)*2)
 		for field, value := range w.fields {
 			kvs = append(kvs, field, value)
 		}
-		if w.asWarning {
-			w.logger.WithContext(ctx).Warnw(kvs...)
+		if err != nil && !isIgnored {
+			if w.asWarning {
+				w.logger.WithContext(ctx).Warnw(kvs...)
+			} else {
+				w.logger.WithContext(ctx).Errorw(kvs...)
+			}
 		} else {
-			w.logger.WithContext(ctx).Errorw(kvs...)
+			w.logger.WithContext(ctx).Infow(kvs...)
 		}
 	}
 	metricStarts := w.method

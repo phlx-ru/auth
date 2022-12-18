@@ -38,4 +38,5 @@ type userRepo interface {
 	FindByPhone(ctx context.Context, phone string) (*ent.User, error)
 	Activate(ctx context.Context, userID int) (*ent.User, error)
 	Deactivate(ctx context.Context, userID int) (*ent.User, error)
+	List(ctx context.Context, limit, offset int64, orderFields []string, orderDirection string) ([]*ent.User, error)
 }

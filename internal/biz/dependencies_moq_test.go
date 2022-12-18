@@ -478,6 +478,9 @@ var _ userRepo = &userRepoMock{}
 //			FindByPhoneFunc: func(ctx context.Context, phone string) (*ent.User, error) {
 //				panic("mock out the FindByPhone method")
 //			},
+//			ListFunc: func(ctx context.Context, limit int64, offset int64, orderFields []string, orderDirection string) ([]*ent.User, error) {
+//				panic("mock out the List method")
+//			},
 //			UpdateFunc: func(contextMoqParam context.Context, user *ent.User) (*ent.User, error) {
 //				panic("mock out the Update method")
 //			},
@@ -505,6 +508,9 @@ type userRepoMock struct {
 
 	// FindByPhoneFunc mocks the FindByPhone method.
 	FindByPhoneFunc func(ctx context.Context, phone string) (*ent.User, error)
+
+	// ListFunc mocks the List method.
+	ListFunc func(ctx context.Context, limit int64, offset int64, orderFields []string, orderDirection string) ([]*ent.User, error)
 
 	// UpdateFunc mocks the Update method.
 	UpdateFunc func(contextMoqParam context.Context, user *ent.User) (*ent.User, error)
@@ -553,6 +559,19 @@ type userRepoMock struct {
 			// Phone is the phone argument value.
 			Phone string
 		}
+		// List holds details about calls to the List method.
+		List []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// Limit is the limit argument value.
+			Limit int64
+			// Offset is the offset argument value.
+			Offset int64
+			// OrderFields is the orderFields argument value.
+			OrderFields []string
+			// OrderDirection is the orderDirection argument value.
+			OrderDirection string
+		}
 		// Update holds details about calls to the Update method.
 		Update []struct {
 			// ContextMoqParam is the contextMoqParam argument value.
@@ -567,6 +586,7 @@ type userRepoMock struct {
 	lockFindByEmail sync.RWMutex
 	lockFindByID    sync.RWMutex
 	lockFindByPhone sync.RWMutex
+	lockList        sync.RWMutex
 	lockUpdate      sync.RWMutex
 }
 
@@ -783,6 +803,54 @@ func (mock *userRepoMock) FindByPhoneCalls() []struct {
 	mock.lockFindByPhone.RLock()
 	calls = mock.calls.FindByPhone
 	mock.lockFindByPhone.RUnlock()
+	return calls
+}
+
+// List calls ListFunc.
+func (mock *userRepoMock) List(ctx context.Context, limit int64, offset int64, orderFields []string, orderDirection string) ([]*ent.User, error) {
+	if mock.ListFunc == nil {
+		panic("userRepoMock.ListFunc: method is nil but userRepo.List was just called")
+	}
+	callInfo := struct {
+		Ctx            context.Context
+		Limit          int64
+		Offset         int64
+		OrderFields    []string
+		OrderDirection string
+	}{
+		Ctx:            ctx,
+		Limit:          limit,
+		Offset:         offset,
+		OrderFields:    orderFields,
+		OrderDirection: orderDirection,
+	}
+	mock.lockList.Lock()
+	mock.calls.List = append(mock.calls.List, callInfo)
+	mock.lockList.Unlock()
+	return mock.ListFunc(ctx, limit, offset, orderFields, orderDirection)
+}
+
+// ListCalls gets all the calls that were made to List.
+// Check the length with:
+//
+//	len(mockeduserRepo.ListCalls())
+func (mock *userRepoMock) ListCalls() []struct {
+	Ctx            context.Context
+	Limit          int64
+	Offset         int64
+	OrderFields    []string
+	OrderDirection string
+} {
+	var calls []struct {
+		Ctx            context.Context
+		Limit          int64
+		Offset         int64
+		OrderFields    []string
+		OrderDirection string
+	}
+	mock.lockList.RLock()
+	calls = mock.calls.List
+	mock.lockList.RUnlock()
 	return calls
 }
 

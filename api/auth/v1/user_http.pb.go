@@ -23,20 +23,42 @@ const OperationUserActivate = "/auth.v1.User/Activate"
 const OperationUserAdd = "/auth.v1.User/Add"
 const OperationUserDeactivate = "/auth.v1.User/Deactivate"
 const OperationUserEdit = "/auth.v1.User/Edit"
+const OperationUserList = "/auth.v1.User/List"
 
 type UserHTTPServer interface {
 	Activate(context.Context, *ActivateRequest) (*UserNothing, error)
 	Add(context.Context, *AddRequest) (*AddResponse, error)
 	Deactivate(context.Context, *DeactivateRequest) (*UserNothing, error)
 	Edit(context.Context, *EditRequest) (*UserNothing, error)
+	List(context.Context, *ListRequest) (*ListResponse, error)
 }
 
 func RegisterUserHTTPServer(s *http.Server, srv UserHTTPServer) {
 	r := s.Route("/")
+	r.GET("/v1/users/list", _User_List0_HTTP_Handler(srv))
 	r.POST("/v1/users/add", _User_Add0_HTTP_Handler(srv))
 	r.POST("/v1/users/edit", _User_Edit0_HTTP_Handler(srv))
 	r.POST("/v1/users/activate", _User_Activate0_HTTP_Handler(srv))
 	r.POST("/v1/users/deactivate", _User_Deactivate0_HTTP_Handler(srv))
+}
+
+func _User_List0_HTTP_Handler(srv UserHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationUserList)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.List(ctx, req.(*ListRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListResponse)
+		return ctx.Result(200, reply)
+	}
 }
 
 func _User_Add0_HTTP_Handler(srv UserHTTPServer) func(ctx http.Context) error {
@@ -120,6 +142,7 @@ type UserHTTPClient interface {
 	Add(ctx context.Context, req *AddRequest, opts ...http.CallOption) (rsp *AddResponse, err error)
 	Deactivate(ctx context.Context, req *DeactivateRequest, opts ...http.CallOption) (rsp *UserNothing, err error)
 	Edit(ctx context.Context, req *EditRequest, opts ...http.CallOption) (rsp *UserNothing, err error)
+	List(ctx context.Context, req *ListRequest, opts ...http.CallOption) (rsp *ListResponse, err error)
 }
 
 type UserHTTPClientImpl struct {
@@ -176,6 +199,19 @@ func (c *UserHTTPClientImpl) Edit(ctx context.Context, in *EditRequest, opts ...
 	opts = append(opts, http.Operation(OperationUserEdit))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, err
+}
+
+func (c *UserHTTPClientImpl) List(ctx context.Context, in *ListRequest, opts ...http.CallOption) (*ListResponse, error) {
+	var out ListResponse
+	pattern := "/v1/users/list"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationUserList))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
