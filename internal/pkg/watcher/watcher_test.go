@@ -17,12 +17,33 @@ func mutedTiming() statsd.Timing {
 }
 
 func TestFluentInterfaceFunctionPurity(t *testing.T) {
+	ctx := context.Background()
 	instanceBasic := Make(`metric.prefix`)
-	instanceGet := instanceBasic.OnPreparedMethod("Get")
-	instanceSet := instanceBasic.OnPreparedMethod("Set")
+	instanceGet := instanceBasic.OnPreparedMethod("Get").
+		WithIgnoredErrors([]error{fmt.Errorf("error get")}).
+		WithFields(map[string]any{
+			"method": "get",
+		})
+	instanceGet.Results(func() (context.Context, error) {
+		return ctx, fmt.Errorf("result error get")
+	})
+	instanceSet := instanceBasic.OnPreparedMethod("Set").
+		WithIgnoredErrors([]error{fmt.Errorf("error set")}).
+		WithFields(map[string]any{
+			"method": "set",
+		})
+	instanceSet.Results(func() (context.Context, error) {
+		return ctx, nil
+	})
 	require.Equal(t, "", instanceBasic.method)
+
 	require.Equal(t, "get", instanceGet.method)
+	require.Equal(t, "error get", instanceGet.ignoredErrors[0].Error())
+	require.Equal(t, "get", instanceGet.fields["method"])
+
 	require.Equal(t, "set", instanceSet.method)
+	require.Equal(t, "error set", instanceSet.ignoredErrors[0].Error())
+	require.Equal(t, "set", instanceSet.fields["method"])
 }
 
 func TestWatcher_Results_NoPanic(t *testing.T) {
@@ -47,13 +68,17 @@ func TestWatcher_Results_Logging(t *testing.T) {
 	baseLogger := &baseLoggerMock{
 		LogFunc: func(level log.Level, keyvals ...interface{}) error {
 			require.Equal(t, log.LevelWarn, level)
-			require.Equal(t, 6, len(keyvals))
+			require.Equal(t, 10, len(keyvals))
 			require.Equal(t, "module", keyvals[0])
 			require.Equal(t, "watcher_test", keyvals[1])
-			require.Equal(t, "custom_field1", keyvals[2])
-			require.Equal(t, struct{ name string }{name: "custom value"}, keyvals[3])
-			require.Equal(t, log.DefaultMessageKey, keyvals[4])
-			require.Equal(t, "metric.prefix has failure on test", keyvals[5])
+			require.Equal(t, log.DefaultMessageKey, keyvals[2])
+			require.Equal(t, "metric.prefix has failure on test", keyvals[3])
+			require.Equal(t, "custom_field1", keyvals[4])
+			require.Equal(t, struct{ name string }{name: "custom value"}, keyvals[5])
+			require.Equal(t, "error", keyvals[6])
+			require.Equal(t, fmt.Errorf("some error"), keyvals[7])
+			require.Equal(t, "stack", keyvals[8])
+			require.Contains(t, keyvals[9], "runtime/debug.Stack()")
 			return nil
 		},
 	}
@@ -97,7 +122,9 @@ func NewSleepingStruct(metrics metrics, logger logger) *SleepingStruct {
 
 func (s *SleepingStruct) SleepForAWhile(ctx context.Context, duration time.Duration, errorMessage string) error {
 	var err error
-	defer s.watcher.OnPreparedMethod(`SleepForAWhile`).WithTimings().Results(func() (context.Context, error) {
+	defer s.watcher.OnPreparedMethod(`SleepForAWhile`).WithTimings().WithFields(map[string]any{
+		"duration": duration,
+	}).Results(func() (context.Context, error) {
 		return ctx, err
 	})
 	if errorMessage != "" {
@@ -123,8 +150,16 @@ func TestNew(t *testing.T) {
 	}
 	baseLogger := &baseLoggerMock{
 		LogFunc: func(level log.Level, keyvals ...interface{}) error {
-			require.Equal(t, log.LevelError, level)
-			require.Equal(t, 4, len(keyvals))
+			m := mapFromKeyValues(keyvals)
+			if incrementCalls == 0 {
+				require.Equal(t, log.LevelError, level)
+				require.Equal(t, 10, len(keyvals))
+				require.Equal(t, 50*time.Millisecond, m["duration"])
+			} else {
+				require.Equal(t, log.LevelInfo, level)
+				require.Equal(t, 6, len(keyvals))
+				require.Equal(t, 10*time.Millisecond, m["duration"])
+			}
 			return nil
 		},
 	}
@@ -145,4 +180,12 @@ func TestNew(t *testing.T) {
 	require.Equal(t, 2, len(metrics.NewTimingCalls()))
 	require.Equal(t, 2, len(metrics.IncrementCalls()))
 	require.Equal(t, 2, len(logger.WithContextCalls()))
+}
+
+func mapFromKeyValues(kvs []any) map[any]any {
+	res := map[any]any{}
+	for i := 0; i < len(kvs); i += 2 {
+		res[kvs[i]] = kvs[i+1]
+	}
+	return res
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime/debug"
+	"sort"
 	"strings"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -58,7 +59,6 @@ func New(metricPrefix string, logger logger, metrics metrics) *Watcher {
 		logger:       logger,
 		metrics:      metrics,
 		metricPrefix: metricPrefix,
-		fields:       map[string]any{},
 	}
 }
 
@@ -82,7 +82,6 @@ func New(metricPrefix string, logger logger, metrics metrics) *Watcher {
 func Make(metricPrefix string) *Watcher {
 	return &Watcher{
 		metricPrefix: metricPrefix,
-		fields:       map[string]any{},
 	}
 }
 
@@ -172,15 +171,16 @@ func (w *Watcher) Results(catcher ContextAndErrorCatcher) {
 			w.logger.WithContext(ctx).Errorf("empty 'method' on watcher for metric prefix '%s'", w.metricPrefix)
 			w.method = "unknown"
 		}
+		if w.fields == nil {
+			w.fields = map[string]any{}
+		}
 		w.fields[log.DefaultMessageKey] = fmt.Sprintf(`%s has %s on %s`, w.metricPrefix, result, w.method)
 		if err != nil && !isIgnored {
 			w.fields[`error`] = err
 			w.fields[`stack`] = string(debug.Stack())
 		}
-		kvs := make([]any, 0, len(w.fields)*2)
-		for field, value := range w.fields {
-			kvs = append(kvs, field, value)
-		}
+		kvs := sortedKeyValuesFromFields(w.fields)
+		w.fields = nil
 		if err != nil && !isIgnored {
 			if w.asWarning {
 				w.logger.WithContext(ctx).Warnw(kvs...)
@@ -222,4 +222,37 @@ func isIgnoredError(err error, ignoredErrors []error, ignoredErrorsChecks []func
 		}
 	}
 	return false
+}
+
+func sortedKeyValuesFromFields(fields map[string]any) []any {
+	keys := make([]string, 0, len(fields))
+	for key := range fields {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i] == log.DefaultMessageKey {
+			return true
+		}
+		if keys[j] == log.DefaultMessageKey {
+			return false
+		}
+		if keys[i] == "stack" {
+			return false
+		}
+		if keys[j] == "stack" {
+			return true
+		}
+		if keys[i] == "error" {
+			return false
+		}
+		if keys[j] == "error" {
+			return true
+		}
+		return false
+	})
+	kvs := make([]any, 0, len(fields)*2)
+	for _, key := range keys {
+		kvs = append(kvs, key, fields[key])
+	}
+	return kvs
 }
