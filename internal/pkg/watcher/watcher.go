@@ -14,6 +14,15 @@ import (
 	pkgStrings "auth/internal/pkg/strings"
 )
 
+const (
+	keyError      = `error`
+	keyStack      = `stack`
+	chunkSuccess  = `success`
+	chunkFailure  = `failure`
+	chunkTimings  = `timings`
+	methodUnknown = `unknown`
+)
+
 type Watcher struct {
 	logger              logger
 	metrics             metrics
@@ -161,23 +170,23 @@ type ContextAndErrorCatcher func() (context.Context, error)
 
 func (w *Watcher) Results(catcher ContextAndErrorCatcher) {
 	ctx, err := catcher()
-	result := `success`
+	result := chunkSuccess
 	isIgnored := isIgnoredError(err, w.ignoredErrors, w.ignoredErrorsChecks)
 	if err != nil && !isIgnored {
-		result = `failure`
+		result = chunkFailure
 	}
 	if !isNil(w.logger) {
 		if w.method == "" {
 			w.logger.WithContext(ctx).Errorf("empty 'method' on watcher for metric prefix '%s'", w.metricPrefix)
-			w.method = "unknown"
+			w.method = methodUnknown
 		}
 		if w.fields == nil {
 			w.fields = map[string]any{}
 		}
 		w.fields[log.DefaultMessageKey] = fmt.Sprintf(`%s has %s on %s`, w.metricPrefix, result, w.method)
 		if err != nil && !isIgnored {
-			w.fields[`error`] = err
-			w.fields[`stack`] = string(debug.Stack())
+			w.fields[keyError] = err
+			w.fields[keyStack] = string(debug.Stack())
 		}
 		kvs := sortedKeyValuesFromFields(w.fields)
 		w.fields = nil
@@ -196,7 +205,7 @@ func (w *Watcher) Results(catcher ContextAndErrorCatcher) {
 		metricStarts = pkgStrings.Metric(w.metricPrefix, w.method)
 	}
 	if !isNil(w.timing) {
-		w.timing.Send(pkgStrings.Metric(metricStarts, `timings`, result))
+		w.timing.Send(pkgStrings.Metric(metricStarts, chunkTimings, result))
 	}
 	if !isNil(w.metrics) {
 		w.metrics.Increment(pkgStrings.Metric(metricStarts, result))
@@ -236,16 +245,16 @@ func sortedKeyValuesFromFields(fields map[string]any) []any {
 		if keys[j] == log.DefaultMessageKey {
 			return false
 		}
-		if keys[i] == "stack" {
+		if keys[i] == keyStack {
 			return false
 		}
-		if keys[j] == "stack" {
+		if keys[j] == keyStack {
 			return true
 		}
-		if keys[i] == "error" {
+		if keys[i] == keyError {
 			return false
 		}
-		if keys[j] == "error" {
+		if keys[j] == keyError {
 			return true
 		}
 		return false
